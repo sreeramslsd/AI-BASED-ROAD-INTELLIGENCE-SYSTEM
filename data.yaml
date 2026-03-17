@@ -1,0 +1,7 @@
+names:
+- pothole
+- crack
+- manhole
+nc: 3
+train: c:\Users\sreeram\OneDrive\Desktop\OM\datasets\data\images
+val: c:\Users\sreeram\OneDrive\Desktop\OM\datasets\data\images

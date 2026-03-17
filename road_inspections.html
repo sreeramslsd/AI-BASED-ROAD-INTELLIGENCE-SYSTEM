@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRIEWS | Vijayawada Command Sector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --accent: #7000ff;
+            --success: #00ff88;
+            --danger: #ff3b3b;
+            --bg: #050507;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR DRAWER --- */
+        .sidebar {
+            width: 380px;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            padding: 40px 25px;
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1);
+        }
+
+        .sidebar h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            letter-spacing: 3px;
+            color: var(--primary);
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+        }
+
+        .road-node {
+            width: 100%;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .road-node:hover {
+            border-color: var(--primary);
+            background: rgba(0, 242, 255, 0.05);
+            transform: translateX(10px);
+        }
+
+        .road-node.active {
+            background: linear-gradient(135deg, rgba(112, 0, 255, 0.2), rgba(0, 242, 255, 0.2));
+            border-color: var(--primary);
+            box-shadow: 0 0 25px rgba(0, 242, 255, 0.2);
+        }
+
+        .road-node strong { display: block; font-size: 14px; margin-bottom: 5px; color: #fff; }
+        .road-node span { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Status Indicator */
+        .status-dot {
+            width: 8px; height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        /* --- MAIN VIEWPORT --- */
+        .viewport {
+            flex-grow: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .header-status {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .video-stage {
+            width: 100%;
+            max-width: 1000px;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            border-radius: 30px;
+            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+        }
+
+        iframe { width: 100%; height: 100%; border: none; opacity: 0; transition: opacity 1s; }
+        iframe.loaded { opacity: 1; }
+
+        /* AI Scanner Overlay */
+        .scanner-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
+
+        .scan-line {
+            width: 100%; height: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+            position: absolute;
+            top: 0;
+            animation: scan 4s linear infinite;
+        }
+
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        /* --- ACTION CONTROLS --- */
+        .controls {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .analyze-btn {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 20px 60px;
+            border-radius: 50px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.4s;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .analyze-btn:hover {
+            background: var(--primary);
+            color: black;
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.5);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .ai-status-text {
+            font-size: 12px;
+            color: #888;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* --- PHYSICS FEEDBACK PANEL --- */
+        .physics-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 420px;
+            display: flex;
+            gap: 20px;
+            opacity: 0;
+            transition: 0.5s;
+        }
+
+        .metric-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 15px 25px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .metric-card h5 { font-size: 10px; color: #888; margin-bottom: 5px; }
+        .metric-card p { font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--primary); }
+
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2>VIJAYAWADA SECTOR</h2>
+        
+        <div class="road-node" onclick="updateNode('Uuaemo4RwFU', 'Benz Circle - NH16', this)">
+            <span>Node VJA-101</span>
+            <strong>Benz Circle Intersection</strong>
+            <div><span class="status-dot"></span><small>ACTIVE FEED</small></div>
+        </div>
+
+        <div class="road-node" onclick="updateNode('8JCk5M_xrBs', 'Kanaka Durga Varadhi', this)">
+            <span>Node VJA-102</span>
+            <strong>Kanaka Durga Varadhi</strong>
+            <div><span class="status-dot"></span><small>ACTIVE FEED</small></div>
+        </div>
+
+        <div class="road-node" onclick="updateNode('Lxqcg1qt0XU', 'MG Road - Main', this)">
+            <span>Node VJA-103</span>
+            <strong>Mahatma Gandhi Road</strong>
+            <div><span class="status-dot"></span><small>ACTIVE FEED</small></div>
+        </div>
+
+        <div class="road-node" onclick="updateNode('WKGK_hYnlGE', 'Eluru Road Junction', this)">
+            <span>Node VJA-104</span>
+            <strong>Eluru Road Crossing</strong>
+            <div><span class="status-dot"></span><small>ACTIVE FEED</small></div>
+        </div>
+
+        <div class="road-node" onclick="updateNode('OkQ0utdxwBY', 'NH-16 Highway Sector', this)">
+            <span>Node VJA-105</span>
+            <strong>National Highway 16</strong>
+            <div><span class="status-dot"></span><small>ACTIVE FEED</small></div>
+        </div>
+    </aside>
+
+    <main class="viewport">
+        <div class="header-status">
+            <div>SYSTEM: <span style="color:var(--success)">OPTIMAL</span></div>
+            <div>USER: <span style="color:var(--primary)">CHIEF ENGINEER Rama Krishna</span></div>
+        </div>
+
+        <div class="video-stage">
+            <div class="scanner-overlay" id="scanner">
+                <div class="scan-line"></div>
+            </div>
+            
+            <div id="no-signal" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #333;">
+                <h1 style="font-family: 'Orbitron'; letter-spacing: 10px;">NO SIGNAL</h1>
+                <p>SELECT NODE TO INITIALIZE NEURAL UPLINK</p>
+            </div>
+
+            <div id="video-wrapper" style="height: 100%;"></div>
+        </div>
+
+        <div class="controls">
+            <p class="ai-status-text" id="ai-status">Waiting for Node selection...</p>
+            <button class="analyze-btn" id="analyze-btn" disabled onclick="runInference()">Initialize SPFPN Analysis</button>
+        </div>
+
+        <div class="physics-panel" id="physics">
+            <div class="metric-card">
+                <h5>DISTANCE (D)</h5>
+                <p id="m-dist">0.0m</p>
+            </div>
+            <div class="metric-card">
+                <h5>TIRE-PATCH RATIO</h5>
+                <p id="m-ratio">0.0</p>
+            </div>
+            <div class="metric-card">
+                <h5>SEVERITY</h5>
+                <p id="m-sev" style="color:var(--success)">SAFE</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function updateNode(videoId, roadName, element) {
+            // UI State
+            document.querySelectorAll('.road-node').forEach(n => n.classList.remove('active'));
+            element.classList.add('active');
+            
+            document.getElementById('no-signal').style.display = 'none';
+            document.getElementById('ai-status').innerText = "Stream Integrated: " + roadName;
+            document.getElementById('analyze-btn').disabled = false;
+            document.getElementById('physics').style.opacity = '0';
+
+            // Load Video
+            const wrapper = document.getElementById('video-wrapper');
+            wrapper.innerHTML = `<iframe class="loaded" src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0" allow="autoplay"></iframe>`;
+        }
+
+        function runInference() {
+            const scanner = document.getElementById('scanner');
+            const btn = document.getElementById('analyze-btn');
+            const status = document.getElementById('ai-status');
+
+            scanner.style.display = 'block';
+            btn.innerText = "Processing SPFPN Weights...";
+            status.innerText = "Executing Multi-Scale Feature Fusion...";
+
+            setTimeout(() => {
+                scanner.style.display = 'none';
+                btn.innerText = "Initialize SPFPN Analysis";
+                status.innerText = "Analysis Complete: Risk Assessment Derived.";
+                
+                // Show simulated physics data
+                document.getElementById('physics').style.opacity = '1';
+                document.getElementById('m-dist').innerText = (Math.random() * 5 + 2).toFixed(2) + "m";
+                document.getElementById('m-ratio').innerText = (Math.random() * 1.5).toFixed(2);
+                
+                const ratio = parseFloat(document.getElementById('m-ratio').innerText);
+                const sev = document.getElementById('m-sev');
+                if(ratio > 1.2) {
+                    sev.innerText = "CRITICAL";
+                    sev.style.color = "var(--danger)";
+                } else {
+                    sev.innerText = "SAFE";
+                    sev.style.color = "var(--success)";
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
