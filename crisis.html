@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crisis Intelligence | NCRIS</title>
+    <!-- Bootstrap CSS for grid system if needed -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, sans-serif;
+            overflow-x: hidden;
+        }
+        .glow-critical { box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); border: 1px solid rgba(239, 68, 68, 0.8); }
+        .glow-high { box-shadow: 0 0 20px rgba(249, 115, 22, 0.6); border: 1px solid rgba(249, 115, 22, 0.8); }
+        .glow-medium { box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); border: 1px solid rgba(234, 179, 8, 0.8); }
+        .glow-low { box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); border: 1px solid rgba(34, 197, 94, 0.8); }
+        
+        .video-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.75rem;
+            border: 1px solid #334155;
+            background: #000;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 1), 0 0 30px rgba(59, 130, 246, 0.8);
+            display: none;
+            z-index: 10;
+        }
+
+        .scanning-active .scanner-line {
+            display: block;
+            animation: scan 2s linear infinite;
+        }
+
+        .scanning-active::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(59, 130, 246, 0.1);
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        /* Map Customization */
+        #map {
+            height: 300px;
+            border-radius: 0.5rem;
+            z-index: 1;
+        }
+        
+        /* Glassmorphism cards */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-cardBg border-b border-slate-700 py-3 shadow-lg px-6 sticky top-0 z-50">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-blue-600 text-white rounded p-2 flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white m-0">🚨 Crisis Intelligence</h1>
+                    <p class="text-xs text-slate-400 m-0">Real-time Disaster Detection & Analysis - NCRIS</p>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-4 text-sm text-slate-300">
+                <span class="flex items-center gap-2"><div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div> System Online</span>
+                <span id="current-time" class="font-mono bg-slate-800 px-3 py-1 rounded border border-slate-700"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid p-4 lg:p-6 flex-grow flex flex-col gap-6">
+        
+        <!-- Top row: Video and Main Controls -->
+        <div class="row g-6">
+            <!-- Left Column: Video Feed -->
+            <div class="col-lg-8">
+                <div class="glass-card rounded-xl p-4 h-100 flex flex-col relative">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Live Feed / CCTV Simulation
+                        </h2>
+                        
+                        <div class="d-flex gap-2">
+                            <select id="video-source" class="form-select bg-slate-800 border-slate-600 text-white text-sm" onchange="changeVideoSource()">
+                                <option value="demo1">City Intersection (Demo)</option>
+                                <option value="demo2">Highway Cam (Demo)</option>
+                                <option value="upload">Upload Custom...</option>
+                                <option value="url">YouTube / URL...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="video-wrapper" class="video-container flex-grow d-flex align-items-center justify-content-center min-h-[400px]">
+                        <div class="scanner-line"></div>
+                        <!-- Placeholder Video Graphic -->
+                        <div id="video-placeholder" class="text-center text-slate-500 hidden">
+                            <svg class="w-16 h-16 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            <p class="text-sm">Please select a file to upload or enter URL via command prompt.</p>
+                        </div>
+                        
+                        <!-- Actual Video element -->
+                        <video id="sim-video" class="w-full h-full object-cover hidden" loop muted playsinline>
+                            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                        </video>
+                        
+                        <!-- Overlay data -->
+                        <div class="absolute top-4 left-4 font-mono text-xs text-white bg-black/60 px-2 py-1 rounded">
+                            CAM-042 | <span id="cam-timestamp"></span>
+                        </div>
+                        <div class="absolute top-4 right-4 bg-red-600 text-white text-xs px-2 py-1 rounded animate-pulse-fast font-bold flex items-center gap-1">
+                            <div class="w-2 h-2 bg-white rounded-full"></div> REC
+                        </div>
+                        
+                        <!-- Scan Progress Overlay -->
+                        <div id="scan-overlay" class="absolute inset-0 bg-blue-900/40 backdrop-blur-sm hidden flex-col items-center justify-center z-20">
+                            <div class="w-24 h-24 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <h3 class="text-xl font-bold text-white tracking-widest animate-pulse">ANALYZING SCENE...</h3>
+                            <div class="w-64 h-2 bg-slate-800 rounded-full mt-4 overflow-hidden">
+                                <div id="scan-progress" class="h-full bg-blue-500 w-0 transition-all duration-300"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Control & Immediate Output -->
+            <div class="col-lg-4 d-flex flex-col gap-4">
+                
+                <!-- Action Card -->
+                <div class="glass-card rounded-xl p-6 text-center shadow-lg border-t-4 border-blue-500">
+                    <h3 class="text-lg font-medium mb-2">Initiate AI Analysis</h3>
+                    <p class="text-sm text-slate-400 mb-4">Scan the current frame through the Crisis Detection model to identify potential threats.</p>
+                    
+                    <button id="scan-btn" onclick="startScan()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 px-6 rounded-lg shadow-[0_0_15px_rgba(59,130,246,0.5)] transition-all hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(59,130,246,0.8)] d-flex align-items-center justify-content-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                        SCAN FOR CRISIS
+                    </button>
+                    
+                    <audio id="scan-audio" src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_3d1ef99ab6.mp3?filename=radar-scan-28151.mp3" preload="auto"></audio>
+                </div>
+
+                <!-- Primary Alert Output (Hidden until scan) -->
+                <div id="output-panel" class="glass-card rounded-xl p-5 hidden flex-grow transition-all duration-500 opacity-0 transform translate-y-4">
+                    <div class="d-flex justify-content-between align-items-start border-b border-slate-700 pb-3 mb-4">
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">AI Detection Result</p>
+                            <h2 id="out-type" class="text-2xl font-bold font-mono">--</h2>
+                        </div>
+                        <div id="out-icon" class="text-4xl">🤖</div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="bg-slate-800/50 p-3 rounded border border-slate-700">
+                                <p class="text-xs text-slate-400 mb-1">Severity</p>
+                                <div class="d-flex align-items-end gap-2">
+                                    <span id="out-severity" class="text-2xl font-bold font-mono">0</span>
+                                    <span class="text-sm text-slate-500 pb-1">/100</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-slate-800/50 p-3 rounded border border-slate-700">
+                                <p class="text-xs text-slate-400 mb-1">Risk Level</p>
+                                <span id="out-risk" class="text-lg font-bold">--</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-slate-800/50 p-3 rounded border border-slate-700">
+                                <p class="text-xs text-slate-400 mb-1">Confidence</p>
+                                <div class="d-flex align-items-end gap-2">
+                                    <span id="out-confidence" class="text-lg font-bold font-mono">0</span>
+                                    <span class="text-sm text-slate-500 pb-1">%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-slate-800/50 p-3 rounded border border-slate-700">
+                                <p class="text-xs text-slate-400 mb-1">Impact Radius</p>
+                                <div class="d-flex align-items-end gap-2">
+                                    <span id="out-radius" class="text-lg font-bold font-mono">0</span>
+                                    <span class="text-sm text-slate-500 pb-1">km</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-slate-800/80 p-4 rounded-lg border border-slate-600 shadow-inner">
+                        <p class="text-xs text-slate-400 mb-2 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            AI Predictive Analysis
+                        </p>
+                        <p id="out-prediction" class="text-sm leading-relaxed text-slate-200">
+                            Awaiting scan...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lower row: Map & Recommendations (Hidden until scan) -->
+        <div id="extended-panel" class="row g-6 hidden opacity-0 transition-opacity duration-700">
+            
+            <div class="col-lg-6">
+                <div class="glass-card rounded-xl p-4 h-100">
+                    <h3 class="text-md font-semibold mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                        Impact Zone Mapping
+                    </h3>
+                    <div id="map" class="w-full bg-slate-800 relative z-10"></div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="glass-card rounded-xl p-4 h-100 flex flex-col">
+                    <h3 class="text-md font-semibold mb-3 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Smart Recommendations (SOP)
+                    </h3>
+                    
+                    <div class="bg-slate-900 rounded-lg p-4 flex-grow border border-slate-700 overflow-y-auto max-h-[300px] hide-scrollbar">
+                        <ul id="recs-list" class="space-y-3 m-0 p-0 list-none text-sm">
+                            <!-- Recommendations injected here -->
+                        </ul>
+                    </div>
+                    
+                    <div class="mt-4 flex gap-3">
+                        <button class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded transition-colors text-sm font-medium">Export Report</button>
+                        <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded transition-colors text-sm font-medium">Escalate to Command</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Alert Toast positioned bottom right -->
+    <div id="alert-toast" class="fixed bottom-6 right-6 transform translate-y-24 opacity-0 transition-all duration-500 z-50">
+        <div class="bg-red-900 border-l-4 border-red-500 text-white p-4 rounded shadow-2xl flex items-start gap-3 max-w-md">
+            <svg class="w-6 h-6 text-red-500 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+                <h4 class="font-bold text-lg mb-1" id="toast-title">Critical Alert</h4>
+                <p class="text-sm text-red-100" id="toast-msg">Critical issue detected.</p>
+            </div>
+            <button onclick="document.getElementById('alert-toast').classList.replace('translate-y-0', 'translate-y-24'); document.getElementById('alert-toast').classList.replace('opacity-100', 'opacity-0');" class="ml-auto text-red-300 hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Set real-time clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+            document.getElementById('cam-timestamp').textContent = now.toLocaleTimeString();
+        }, 1000);
+
+        // Initialize Map
+        let map;
+        let dangerCircle;
+        let marker;
+        
+        function initMap() {
+            if(!map) {
+                map = L.map('map').setView([28.6139, 77.2090], 12);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(map);
+            }
+        }
+
+        // Handle Video Source Change
+        function changeVideoSource() {
+            const val = document.getElementById('video-source').value;
+            const simVideo = document.getElementById('sim-video');
+            const placeholder = document.getElementById('video-placeholder');
+            
+            simVideo.classList.add('hidden');
+            placeholder.classList.add('hidden');
+            simVideo.pause();
+
+            if (val === 'demo1') {
+                simVideo.src = "https://www.w3schools.com/html/mov_bbb.mp4"; // generic demo video
+                simVideo.classList.remove('hidden');
+                simVideo.play();
+            } else if (val === 'demo2') {
+                simVideo.src = "https://www.w3schools.com/html/mov_bbb.mp4";
+                simVideo.classList.remove('hidden');
+                simVideo.play();
+            } else if (val === 'upload' || val === 'url') {
+                placeholder.classList.remove('hidden');
+            } else {
+                simVideo.src = "https://www.w3schools.com/html/mov_bbb.mp4";
+                simVideo.classList.remove('hidden');
+                simVideo.play();
+            }
+        }
+
+        // On load
+        document.addEventListener('DOMContentLoaded', () => {
+            changeVideoSource();
+        });
+
+        // Scan Logic
+        async function startScan() {
+            const btn = document.getElementById('scan-btn');
+            const videoWrapper = document.getElementById('video-wrapper');
+            const scanOverlay = document.getElementById('scan-overlay');
+            const progressBar = document.getElementById('scan-progress');
+            const audio = document.getElementById('scan-audio');
+            
+            // UI States during scan
+            btn.disabled = true;
+            btn.innerHTML = `<div class="spinner-border text-white text-[12px] h-[1em] w-[1em] mr-2" role="status"></div> SCANNING...`;
+            videoWrapper.classList.add('scanning-active');
+            scanOverlay.classList.remove('hidden');
+            scanOverlay.classList.add('flex');
+            
+            // Audio attempt
+            try { audio.play(); } catch(e) {}
+
+            // Progress bar animation
+            progressBar.style.width = '0%';
+            let progress = 0;
+            const progInt = setInterval(() => {
+                progress += Math.random() * 15;
+                if(progress > 95) progress = 95;
+                progressBar.style.width = `${progress}%`;
+            }, 300);
+
+            try {
+                // Fetch from Flask API
+                const resp = await fetch('/detect-crisis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video_reference: "cam_042_feed" })
+                });
+                
+                const data = await resp.json();
+                clearInterval(progInt);
+                progressBar.style.width = '100%';
+                
+                setTimeout(() => {
+                    endScan(data);
+                }, 500);
+
+            } catch (err) {
+                console.error("API Error", err);
+                clearInterval(progInt);
+                // Fallback simulation if backend is down
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                    endScan({
+                        crisis_type: "Fire", icon: "🔥", severity: 88, risk_level: "Critical",
+                        confidence: 94, prediction_text: "Severe fire detected in Zone B. Expanding rapidly.",
+                        affected_area_km: 2.5, location: {lat: 28.6139, lng: 77.2090},
+                        recommendations: ["Dispatch Fire Dept", "Evacuate Zone B"]
+                    });
+                }, 2000);
+            }
+        }
+
+        function endScan(data) {
+            const btn = document.getElementById('scan-btn');
+            const videoWrapper = document.getElementById('video-wrapper');
+            const scanOverlay = document.getElementById('scan-overlay');
+            const outputPanel = document.getElementById('output-panel');
+            const extendedPanel = document.getElementById('extended-panel');
+            const audio = document.getElementById('scan-audio');
+            
+            audio.pause();
+            audio.currentTime = 0;
+            
+            videoWrapper.classList.remove('scanning-active');
+            scanOverlay.classList.add('hidden');
+            scanOverlay.classList.remove('flex');
+            
+            btn.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> SCAN AGAIN`;
+            btn.disabled = false;
+
+            // Populate Output
+            document.getElementById('out-type').textContent = `${data.icon} ${data.crisis_type.toUpperCase()}`;
+            document.getElementById('out-icon').textContent = data.icon;
+            
+            // Animate Numbers
+            animateValue('out-severity', 0, data.severity, 1000);
+            animateValue('out-confidence', 0, data.confidence, 1000);
+            document.getElementById('out-radius').textContent = data.affected_area_km;
+            
+            const riskEl = document.getElementById('out-risk');
+            riskEl.textContent = data.risk_level.toUpperCase();
+            
+            // Style based on level
+            outputPanel.className = `glass-card rounded-xl p-5 flex-grow transition-all duration-500`; // reset
+            
+            let colorClass = 'text-green-400';
+            if(data.risk_level === 'Critical') {
+                outputPanel.classList.add('glow-critical');
+                colorClass = 'text-red-500';
+                showAlert(`🚨 Critical ${data.crisis_type} Detected!`, data.prediction_text);
+            }
+            else if(data.risk_level === 'High') {
+                outputPanel.classList.add('glow-high');
+                colorClass = 'text-orange-500';
+            }
+            else if(data.risk_level === 'Medium') {
+                outputPanel.classList.add('glow-medium');
+                colorClass = 'text-yellow-400';
+            }
+            else {
+                outputPanel.classList.add('glow-low');
+            }
+            riskEl.className = `text-lg font-bold ${colorClass}`;
+            
+            document.getElementById('out-prediction').textContent = data.prediction_text;
+            
+            // Recommendations
+            const recsList = document.getElementById('recs-list');
+            recsList.innerHTML = '';
+            data.recommendations.forEach(r => {
+                recsList.innerHTML += `
+                    <li class="flex items-start gap-3 p-2 hover:bg-slate-800 rounded transition-colors">
+                        <svg class="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>${r}</span>
+                    </li>
+                `;
+            });
+
+            // Show Panels with animation
+            outputPanel.classList.remove('hidden', 'opacity-0', 'translate-y-4');
+            extendedPanel.classList.remove('hidden');
+            
+            setTimeout(() => {
+                extendedPanel.classList.remove('opacity-0');
+                
+                // Map handling
+                initMap();
+                const latlng = [data.location.lat, data.location.lng];
+                map.setView(latlng, 13);
+                
+                if(marker) map.removeLayer(marker);
+                if(dangerCircle) map.removeLayer(dangerCircle);
+                
+                if(data.crisis_type !== "None") {
+                    marker = L.marker(latlng).addTo(map).bindPopup(`<b>${data.crisis_type} Zone</b>`).openPopup();
+                    
+                    let circleColor = data.risk_level === 'Critical' ? '#ef4444' : 
+                                      data.risk_level === 'High' ? '#f97316' : 
+                                      data.risk_level === 'Medium' ? '#eab308' : '#3b82f6';
+                                      
+                    dangerCircle = L.circle(latlng, {
+                        color: circleColor,
+                        fillColor: circleColor,
+                        fillOpacity: 0.3,
+                        radius: data.affected_area_km * 1000 // meters
+                    }).addTo(map);
+                }
+                setTimeout(() => map.invalidateSize(), 100);
+            }, 50);
+        }
+        
+        // Counter animation
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function showAlert(title, msg) {
+            const toast = document.getElementById('alert-toast');
+            document.getElementById('toast-title').textContent = title;
+            document.getElementById('toast-msg').textContent = msg;
+            
+            toast.classList.replace('opacity-0', 'opacity-100');
+            toast.classList.replace('translate-y-24', 'translate-y-0');
+            
+            // Auto hide after 8s
+            setTimeout(() => {
+                toast.classList.replace('translate-y-0', 'translate-y-24');
+                toast.classList.replace('opacity-100', 'opacity-0');
+            }, 8000);
+        }
+    </script>
+</body>
+</html>

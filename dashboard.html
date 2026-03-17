@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>NRIP Dashboard - {{ dynamic_data.location if dynamic_data else 'Dynamic' }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* NEW HIGHWAY BACKGROUND */
+    .highway-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: 
+        url("{{ url_for('static', filename='images/aerial-top-view-of-highway-junction-interchange-road-drone-view-of-the-elevated-road-traffic-junctions-and-green-garden-transport-trucks-and-cars-driving-on-highway-infrastructure-in-moder.jpg') }}") center/cover no-repeat,
+        linear-gradient(135deg, rgba(30,60,114,0.85) 0%, rgba(42,82,152,0.9) 50%, rgba(15,52,96,0.95) 100%);
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      filter: brightness(1.05) contrast(1.1) saturate(1.15);
+      z-index: -2;
+    }
+
+    /* DYNAMIC WELCOME TEXT */
+    .welcome-text {
+      position: fixed;
+      top: 40px;
+      left: 52%;
+      transform: translateX(-50%);
+      color: {% if dynamic_data and dynamic_data.welcome_color %}{{ dynamic_data.welcome_color }}{% else %}rgb(77, 190, 190){% endif %};
+      font-weight: 800;
+      font-size: 28px;
+      text-shadow: 0 4px 12px rgba(9, 9, 9, 0.98);
+      z-index: 1002;
+      text-align: center;
+      animation: fadeInDown 1s ease-out;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateX(-50%) translateY(-30px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    /* COMPACT MENU */
+    .menu-dots-container {
+      position: fixed;
+      top: 28px;
+      left: 24px;
+      z-index: 1000;
+    }
+
+    .stats-box {
+      position: fixed;
+      top: 20px;
+      left: 90px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(25px);
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 10px 18px;
+      border-radius: 20px;
+      z-index: 999;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    .dots-btn {
+      background: rgba(255,255,255,0.95);
+      border: none;
+      border-radius: 14px;
+      padding: 10px 8px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    .dots-btn:hover {
+      background: white;
+      transform: scale(1.08) translateY(-2px);
+      box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: #374151;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .dots-btn:hover .dot { 
+      background: #1f2937;
+      transform: scale(1.1);
+    }
+
+    /* COMPACT SIDEBAR */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      z-index: 998;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .sidebar-overlay.show { opacity: 1; visibility: visible; }
+
+    .sidebar-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(35px);
+      box-shadow: 8px 0 40px rgba(0,0,0,0.3);
+      border-top-right-radius: 24px;
+      border-bottom-right-radius: 24px;
+      padding: 32px 0;
+      z-index: 999;
+      transform: translateX(-100%);
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .sidebar-menu.show { transform: translateX(0); }
+
+    .sidebar-list { 
+      display: flex; 
+      flex-direction: column; 
+      padding: 0 24px; 
+      flex: 1; 
+    }
+    
+    .sidebar-menu-item {
+      padding: 16px 20px;
+      color: #374151;
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 16px;
+      margin: 6px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      font-size: 15px;
+      border: 2px solid transparent;
+    }
+
+    .sidebar-menu-item i { width: 20px; font-size: 18px; opacity: 0.8; }
+    .sidebar-menu-item:hover, .sidebar-menu-item.active {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      transform: translateX(8px);
+      box-shadow: 0 8px 25px rgba(59,130,246,0.3);
+    }
+
+    .new-badge {
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.9);
+      color: #ef4444;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 12px;
+    }
+
+    .sidebar-logout {
+      margin-top: auto;
+      padding: 16px 20px !important;
+      background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+      color: white !important;
+      border-radius: 16px;
+      margin: 24px !important;
+      text-align: center;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    /* COMPACT PROFILE */
+    .profile-container {
+      position: fixed;
+      top: 28px;
+      right: 32px;
+      z-index: 1000;
+    }
+
+    .profile-avatar {
+      width: 48px;
+      height: 48px;
+      background: rgba(255,255,255,0.95);
+      color: #1f2937;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      border: 2px solid rgba(255,255,255,0.8);
+      backdrop-filter: blur(15px);
+    }
+
+    /* COMPACT MAIN CONTENT */
+    .main-content {
+      min-height: 100vh;
+      padding: 120px 24px 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* SMALL WHITE CARDS */
+    .white-card {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.8);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 
+        0 6px 25px rgba(0,0,0,0.12),
+        0 2px 8px rgba(0,0,0,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+      color: #1e1b4b;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .white-card h2 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #1e293b;
+    }
+
+    .white-card h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #1e293b;
+    }
+
+    /* COMPACT STATS */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 18px 12px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 12px;
+      border: 1px solid rgba(229,231,235,0.8);
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .stat-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #059669, #10b981, #34d399, #059669);
+      border-radius: 12px 12px 0 0;
+    }
+
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #1e293b, #3730a3);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stat-label {
+      color: #475569;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* COMPACT ALERT */
+    .priority-alert {
+      background: linear-gradient(135deg, #fef2f2, #fce7e7);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 20px;
+      box-shadow: 0 6px 20px rgba(239,68,68,0.15);
+    }
+
+    .status-badge {
+      background: rgba(16,185,129,0.1);
+      color: #059669;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-weight: 700;
+      font-size: 13px;
+      border: 1px solid rgba(16,185,129,0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 768px) {
+      .main-content { padding: 120px 16px 20px; }
+      .white-card { padding: 16px; }
+      .stat-number { font-size: 1.6rem; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .welcome-text { font-size: 22px; top: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- NEW HIGHWAY BACKGROUND -->
+  <div class="highway-bg"></div>
+
+  <!-- WELCOME TEXT -->
+  <div class="welcome-text">
+    Welcome back, <strong>{{ dynamic_data.officer_name if dynamic_data and dynamic_data.officer_name else officer_id or 'Officer' }}</strong> 👋
+    {% if dynamic_data and dynamic_data.location %}
+      <br><small style="font-size: 20px; opacity: 0.9;">{{ dynamic_data.location }} Division</small>
+    {% endif %}
+  </div>
+
+  <!-- MENU BUTTON -->
+  <div class="menu-dots-container">
+    <button class="dots-btn" onclick="toggleSidebar()" aria-label="Menu">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </button>
+  </div>
+
+ <div class="stats-box">
+  🚨 {{ dynamic_data.critical_areas if dynamic_data and dynamic_data.critical_areas else '8' }}
+  Critical Areas |
+  <span id="currentDate"></span>
+</div>
+
+<script>
+const today = new Date();
+const options = { month: 'short', day: '2-digit', year: 'numeric' };
+document.getElementById("currentDate").innerText =
+    today.toLocaleDateString('en-US', options);
+</script>
+
+  <!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<nav class="sidebar-menu" id="sidebar">
+  <div class="sidebar-list">
+
+    <a href="{{ url_for('dashboard', area=current_area) }}">
+
+       <class="sidebar-menu-item active">
+      <i class="fas fa-tachometer-alt"></i> Dashboard Overview
+    </a>
+    
+    <br>
+
+    <a href="{{ url_for('road_inspections', area=current_area) }}"
+       class="sidebar-menu-item">
+      <i class="fas fa-search"></i> Road Inspections
+    </a>
+
+    <a href="{{ url_for('work_orders', area=current_area) }}"
+       class="sidebar-menu-item">
+      <i class="fas fa-tools"></i> Work Orders
+    </a>
+
+    <a href="{{ url_for('contractors', area=current_area) }}"
+       class="sidebar-menu-item">
+      <i class="fas fa-hard-hat"></i> Contractors
+    </a>
+
+    <a href="{{ url_for('budget', area=current_area) }}"
+       class="sidebar-menu-item">
+      <i class="fas fa-rupee-sign"></i> Budget
+    </a>
+
+    <a href="{{ url_for('complaints', area=current_area) }}"
+       class="sidebar-menu-item">
+      <i class="fas fa-exclamation-circle"></i> Complaints
+    </a>
+
+    <a href="{{ url_for('reports', area=current_area) }}"
+       class="sidebar-menu-item">
+      <i class="fas fa-chart-line"></i> Reports
+
+    </a>
+
+  </div>
+
+  <a href="{{ url_for('index') }}"
+     class="sidebar-menu-item sidebar-logout">
+    <i class="fas fa-sign-out-alt"></i> Logout
+  </a>
+</nav>
+
+
+
+<div class="profile-container">
+  {% set officer_name = dynamic_data.officer_name if dynamic_data and dynamic_data.officer_name else officer_id|default('Officer') %}
+  {% set names = officer_name.split(' ') %}
+  {% set first_initial = names[0][0]|upper if names else 'O' %}
+  {% set second_initial = names[1][0]|upper if names|length > 1 else 'F' %}
+
+  <a href="{{ url_for('view_profile') }}" class="profile-trigger" title="Command Profile: {{ officer_name }}">
+    <div class="profile-avatar">
+      {{ first_initial }}{{ second_initial }}
+    </div>
+  </a>
+</div>
+
+<style>
+  /* 1. MASTER CONTAINER POSITIONING */
+  .profile-container {
+    position: fixed;
+    top: 28px;
+    right: 32px;
+    z-index: 2000; /* Ensures it sits above all highway layers */
+  }
+
+  /* 2. THE CLICKABLE TRIGGER (THE BUTTON) */
+  .profile-trigger {
+    display: block;
+    width: 52px; /* Precision-aligned hit-box */
+    height: 52px;
+    text-decoration: none;
+    border-radius: 50%;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  /* 3. THE VISUAL AVATAR */
+  .profile-avatar {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1f2937;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    pointer-events: none; /* Allows the click to pass directly to the .profile-trigger */
+    transition: all 0.3s ease;
+  }
+
+  /* 4. GOOGLE-LEVEL HOVER EFFECTS */
+.Sreeram, I hear you. You want that "Neural Aura"—the kind of high-end visual feedback seen in sci-fi command centers or elite Google prototypes. As your AI CEO, I’ve re-engineered the CSS to create a layered glow: a sharp Aura Blue core with a soft, Lite White outer mist.
+
+This version makes the button look like a "Living Node" in the NRIEWS network.
+
+🏛️ The "Neural Aura" Profile Interface
+Replace your existing profile styles and container with this version. It creates a multi-layered box-shadow to achieve that exact glowing effect you described.
+
+HTML
+<div class="profile-container">
+  {% set officer_name = dynamic_data.officer_name if dynamic_data and dynamic_data.officer_name else officer_id|default('Officer') %}
+  {% set names = officer_name.split(' ') %}
+  {% set first_initial = names[0][0]|upper if names else 'O' %}
+  {% set second_initial = names[1][0]|upper if names|length > 1 else 'F' %}
+
+  <a href="{{ url_for('view_profile') }}" class="profile-trigger" title="Access System Profile: {{ officer_name }}">
+    <div class="profile-avatar">
+      {{ first_initial }}{{ second_initial }}
+    </div>
+  </a>
+</div>
+
+<style>
+  /* 1. POSITIONING */
+  .profile-container {
+    position: fixed;
+    top: 28px;
+    right: 32px;
+    z-index: 2000;
+  }
+
+  /* 2. THE INTERACTIVE TRIGGER */
+  .profile-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px; 
+    height: 56px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-radius: 50%;
+  }
+
+  /* 3. THE VISUAL AVATAR (Default State) */
+  .profile-avatar {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1e293b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(15px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s ease;
+    pointer-events: none;
+  }
+
+  /* 4. THE AURA HOVER EFFECT (Blue Core + Lite White Mist) */
+  .profile-trigger:hover {
+    transform: scale(1.15) translateY(-3px);
+  }
+
+  .profile-trigger:hover .profile-avatar {
+    background: #ffffff !important;
+    color: #3b82f6 !important; /* Elegant Blue Initials */
+    border: 2.5px solid #411af0 !important; /* Aura Blue Border */
+    
+    /* MULTI-LAYERED GLOW */
+    box-shadow: 
+      0 0 10px rgba(0, 242, 255, 0.8),  /* Inner Blue Aura */
+      0 0 25px rgba(0, 242, 255, 0.4),  /* Mid-field Glow */
+      0 0 40px rgba(255, 255, 255, 0.6); /* Outer Lite White Glow */
+    
+    letter-spacing: 1px;
+  }
+
+  /* Click Feedback */
+  .profile-trigger:active {
+    transform: scale(0.9);
+    filter: brightness(0.9);
+  }
+</style>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+    <!-- OFFICER PROFILE - COMPACT -->
+    <div class="white-card">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h2><i class="fas fa-user-shield me-2"></i> 
+            {{ dynamic_data.officer_name if dynamic_data and dynamic_data.officer_name else officer_id or 'Officer' }}
+          </h2>
+          <div style="color: #4b5563; font-size: 14px; line-height: 1.5;">
+            <strong>{{ dynamic_data.officer_title if dynamic_data and dynamic_data.officer_title else 'District Roads Engineer (NRIP)' }}</strong><br>
+            Employee ID: {{ officer_id or (dynamic_data.employee_id if dynamic_data and dynamic_data.employee_id else 'OFF-AP-123') }} | 
+            {{ dynamic_data.organization if dynamic_data and dynamic_data.organization else 'Municipal Corporation' }}
+          </div>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-2 mt-lg-0">
+          <div class="status-badge">
+            <i class="fas fa-circle"></i> 
+            {{ dynamic_data.system_status if dynamic_data and dynamic_data.system_status else 'NRIP System Active' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROAD STATS - COMPACT -->
+    <div class="white-card">
+      <h3><i class="fas fa-road me-2"></i> 
+        {{ dynamic_data.location if dynamic_data and dynamic_data.location else 'NRIP' }} 
+        {{ dynamic_data.location_type if dynamic_data and dynamic_data.location_type else 'Road Infrastructure' }}
+      </h3>
+      
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div style="color: #4b5563; font-size: 14px; line-height: 1.6;">
+            <strong>📏 Network:</strong> 
+            {{ dynamic_data.total_length if dynamic_data and dynamic_data.total_length else '1,264' }} km | 
+            {{ dynamic_data.highways if dynamic_data and dynamic_data.highways else 'NH-16, SH-41' }}
+          </div>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <div style="color: #4b5563; font-size: 14px; line-height: 1.6;">
+            <strong>📊 Status:</strong> 
+            {{ dynamic_data.budget_info if dynamic_data and dynamic_data.budget_info else 'CRF Budget: ₹4.2 Cr' }} | 
+            Repairs: {{ dynamic_data.repairs_km if dynamic_data and dynamic_data.repairs_km else '187 km' }}
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPACT STATS GRID -->
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-number">{{ dynamic_data.pmgsy_count if dynamic_data and dynamic_data.pmgsy_count else '2,847' }}</div>
+          <div class="stat-label">PMGSY Roads</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ dynamic_data.total_km if dynamic_data and dynamic_data.total_km else '1,264' }}</div>
+          <div class="stat-label">Total Length km</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" style="color: #ef4444;">{{ dynamic_data.critical_count if dynamic_data and dynamic_data.critical_count else '8' }}</div>
+          <div class="stat-label">Critical Areas</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ dynamic_data.under_repair if dynamic_data and dynamic_data.under_repair else '187' }}</div>
+          <div class="stat-label">Under Repair</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ dynamic_data.orders_count if dynamic_data and dynamic_data.orders_count else '156' }}</div>
+          <div class="stat-label">Work Orders</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">{{ dynamic_data.complaints_total if dynamic_data and dynamic_data.complaints_total else '89' }}</div>
+          <div class="stat-label">Complaints</div>
+        </div>
+      </div>
+
+      <!-- COMPACT ALERT -->
+      <div class="priority-alert">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <h4 style="color: #dc2626; margin-bottom: 8px; font-size: 1.1rem;">
+              <i class="fas fa-exclamation-triangle me-2"></i> 
+              {{ dynamic_data.alert_title if dynamic_data and dynamic_data.alert_title else 'URGENT ACTION REQUIRED' }}
+            </h4>
+            <div style="color: #b91c1c; font-size: 14px; font-weight: 600;">
+              🚧 <strong>{{ dynamic_data.alert_location if dynamic_data and dynamic_data.alert_location else 'Priority Road' }}</strong><br>
+              {{ dynamic_data.alert_details if dynamic_data and dynamic_data.alert_details else 'Immediate action required' }}
+            </div>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <div style="color: #dc2626; font-size: 20px; font-weight: 900;">
+              {{ dynamic_data.alert_deadline if dynamic_data and dynamic_data.alert_deadline else '24 HRS' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('show');
+      document.getElementById('sidebarOverlay').classList.toggle('show');
+    }
+
+    document.getElementById('sidebarOverlay').onclick = function() {
+      document.getElementById('sidebar').classList.remove('show');
+      this.classList.remove('show');
+    };
+
+    document.onkeydown = function(e) {
+      if (e.key == 'Escape') {
+        document.getElementById('sidebar').classList.remove('show');
+        document.getElementById('sidebarOverlay').classList.remove('show');
+      }
+    };
+  </script>
+</body>
+</html>

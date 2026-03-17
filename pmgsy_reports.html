@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PMGSY Reports | NRIP - National Rural Roads Monitoring System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --pmgsy-bg: linear-gradient(135deg, #0a0e1a 0%, #1e293b 100%);
+      --pmgsy-surface: rgba(255,255,255,0.98);
+      --pmgsy-border: rgba(16,185,129,0.25);
+      --pmgsy-text: #0f172a;
+      --pmgsy-muted: #64748b;
+      
+      --primary-pmgsy: #15803d;
+      --success-pmgsy: #166534;
+      --warning-pmgsy: #b45309;
+      --danger-pmgsy: #dc2626;
+      
+      --shadow-official: 0 20px 60px rgba(0,0,0,0.2);
+      --radius-official: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--pmgsy-bg);
+      color: var(--pmgsy-text);
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    .pmgsy-container {
+      max-width: 1900px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+    }
+
+    /* HEADER - REDUCED SIZE */
+    .pmgsy-header {
+      background: var(--pmgsy-surface);
+      backdrop-filter: blur(30px);
+      border: 2px solid var(--pmgsy-border);
+      border-radius: var(--radius-official);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-official);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .pmgsy-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary-pmgsy), #22c55e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .logo-bar {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 1rem;
+      background: rgba(21,128,61,0.15);
+      border-radius: 12px;
+      border: 2px solid rgba(21,128,61,0.3);
+      font-weight: 700;
+      color: var(--primary-pmgsy);
+      font-size: 0.9rem;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    /* SMALLER KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+      background: linear-gradient(145deg, var(--pmgsy-surface), rgba(255,255,255,0.9));
+      border: 2px solid var(--pmgsy-border);
+      border-radius: var(--radius-official);
+      padding: 1.5rem 1.25rem;
+      box-shadow: var(--shadow-official);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-pmgsy), #86efac);
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+      border-color: var(--primary-pmgsy);
+    }
+
+    .kpi-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--primary-pmgsy), #22c55e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .kpi-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--pmgsy-muted);
+      margin: 0;
+    }
+
+    /* MAP SECTION */
+    .map-section {
+      background: linear-gradient(145deg, var(--pmgsy-surface), rgba(255,255,255,0.8));
+      border-radius: var(--radius-official);
+      box-shadow: var(--shadow-official);
+      overflow: hidden;
+      margin-bottom: 2rem;
+      border: 2px solid var(--pmgsy-border);
+    }
+
+    .map-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 2px solid var(--pmgsy-border);
+      background: rgba(255,255,255,0.9);
+    }
+
+    #pmgsyMap {
+      height: 500px;
+      width: 100%;
+    }
+
+    .map-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    /* DOWNLOAD BUTTONS - SMALLER */
+    .download-btn {
+      background: linear-gradient(135deg, var(--primary-pmgsy), #22c55e);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: white;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 20px rgba(21,128,61,0.4);
+    }
+
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(21,128,61,0.5);
+      color: white !important;
+    }
+
+    /* CHARTS */
+    .chart-container {
+      height: 350px;
+      background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* TABLES */
+    .pmgsy-table {
+      background: var(--pmgsy-surface);
+      border-radius: var(--radius-official);
+      overflow: hidden;
+      box-shadow: var(--shadow-official);
+    }
+
+    .table thead th {
+      background: linear-gradient(135deg, var(--primary-pmgsy), #22c55e);
+      color: white;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border: none;
+      padding: 1rem 1.25rem;
+      font-size: 0.85rem;
+    }
+
+    /* TABS - COMPACT */
+    .nav-tabs-pmgsy {
+      border: none;
+      padding: 0 1rem;
+      margin-bottom: 0;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(20px);
+      justify-content: center;
+    }
+
+    .nav-tabs-pmgsy .nav-link {
+      border: none;
+      padding: 1rem 1.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-radius: 12px 12px 0 0;
+      margin: 0 0.25rem;
+      background: rgba(255,255,255,0.2);
+      color: var(--pmgsy-muted);
+      border-bottom: 3px solid transparent;
+      font-size: 0.9rem;
+    }
+
+    .nav-tabs-pmgsy .nav-link.active {
+      background: var(--pmgsy-surface);
+      color: var(--primary-pmgsy);
+      border-bottom-color: var(--primary-pmgsy);
+      box-shadow: 0 8px 25px rgba(21,128,61,0.2);
+    }
+
+    /* REPORT CARDS - SMALLER */
+    .report-grid .col-lg-3 {
+      padding: 1rem;
+    }
+
+    .report-card {
+      padding: 2rem 1.5rem;
+      height: 100%;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .filters-grid, .map-controls { gap: 0.75rem; }
+      .pmgsy-title { font-size: 1.8rem; }
+      .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    }
+
+    @media (max-width: 768px) {
+      .pmgsy-container { padding: 1rem 0.5rem; }
+      .kpi-number { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pmgsy-container">
+    <!-- HEADER -->
+    <div class="pmgsy-header">
+      <div class="logo-bar">
+        <div class="logo-item">
+          <i class="fas fa-landmark"></i>
+          MoRD
+        </div>
+        <div class="logo-item">
+          <i class="fas fa-road"></i>
+          NRRDA
+        </div>
+        <div class="logo-item">
+          <i class="fas fa-tractor"></i>
+          PMGSY
+        </div>
+      </div>
+
+      <h1 class="pmgsy-title">
+        <i class="fas fa-chart-line me-3"></i>
+        PMGSY National Dashboard
+      </h1>
+      
+      <div class="filters-grid">
+        <select class="form-select" id="fyFilter">
+          <option>FY 2025-26</option>
+          <option>FY 2024-25</option>
+        </select>
+        <select class="form-select" id="stateFilter">
+          <option>All India</option>
+          <option>Andhra Pradesh</option>
+          <option>Uttar Pradesh</option>
+        </select>
+        <select class="form-select" id="districtFilter">
+          <option>All Districts</option>
+          <option>Krishna District</option>
+        </select>
+        <select class="form-select" id="phaseFilter">
+          <option>All Phases</option>
+          <option>PMGSY-III</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- COMPACT KPI GRID -->
+    <div class="kpi-grid" id="kpiGrid">
+      <!-- POPULATED BY JS -->
+    </div>
+
+    <!-- GIS MAP -->
+    <div class="map-section">
+      <div class="map-header">
+        <div>
+          <h3 class="h4 fw-bold mb-1" style="color: var(--primary-pmgsy);">
+            <i class="fas fa-map me-2"></i>National GIS Map
+          </h3>
+          <small class="text-muted">Click layers to switch | Hover for details</small>
+        </div>
+        <div class="map-controls" id="mapControls"></div>
+      </div>
+      <div id="pmgsyMap"></div>
+    </div>
+
+    <!-- TABS -->
+    <ul class="nav nav-tabs nav-tabs-pmgsy" id="pmgsyTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="physical-tab" data-bs-toggle="tab" data-bs-target="#physical">
+          <i class="fas fa-ruler me-1"></i>Physical
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial">
+          <i class="fas fa-coins me-1"></i>Financial
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="habitation-tab" data-bs-toggle="tab" data-bs-target="#habitation">
+          <i class="fas fa-home me-1"></i>Habitations
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="quality-tab" data-bs-toggle="tab" data-bs-target="#quality">
+          <i class="fas fa-check-circle me-1"></i>Quality
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="delay-tab" data-bs-toggle="tab" data-bs-target="#delay">
+          <i class="fas fa-clock me-1"></i>Delays
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content" style="background: var(--pmgsy-surface); border-radius: 0 0 var(--radius-official) var(--radius-official); box-shadow: var(--shadow-official);">
+      <!-- PHYSICAL -->
+      <div class="tab-pane fade show active p-4" id="physical">
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="chart-container">
+              <canvas id="progressChart"></canvas>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <h6 class="fw-bold mb-3">Package Progress (Top 10)</h6>
+            <div class="pmgsy-table">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>ID</th><th>Road</th><th>%</th></tr></thead>
+                <tbody id="packageTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCIAL -->
+      <div class="tab-pane fade p-4" id="financial">
+        <div class="row g-3 text-center mb-4">
+          <div class="col-md-3">
+            <div class="p-3 border rounded bg-success bg-opacity-10">
+              <div class="h5 fw-bold text-success">₹73,125 Cr</div>
+              <div class="small text-muted">Sanctioned</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded bg-primary bg-opacity-10">
+              <div class="h5 fw-bold text-primary">₹65,812 Cr</div>
+              <div class="small text-muted">Released</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded bg-success bg-opacity-10">
+              <div class="h5 fw-bold text-success">₹59,231 Cr</div>
+              <div class="small text-muted">Utilized</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="p-3 border rounded bg-warning bg-opacity-10">
+              <div class="h5 fw-bold text-warning">₹6,581 Cr</div>
+              <div class="small text-muted">Balance</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- OTHER TABS SIMPLIFIED -->
+      <div class="tab-pane fade p-4" id="habitation">
+        <div class="row g-3 text-center">
+          <div class="col-md-4">
+            <div class="p-4 border rounded bg-primary bg-opacity-10">
+              <div class="h4 fw-bold text-primary mb-2">1,78,992</div>
+              <small>Eligible</small>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-4 border rounded bg-success bg-opacity-10">
+              <div class="h4 fw-bold text-success mb-2">1,63,000</div>
+              <small>Connected (91%)</small>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-4 border rounded bg-warning bg-opacity-10">
+              <div class="h4 fw-bold text-warning mb-2">15,992</div>
+              <small>Pending</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade p-4" id="quality">
+        <div class="row g-3 text-center">
+          <div class="col-md-4"><div class="p-4 border rounded"><div class="h4 text-success mb-2">98.7%</div><small>Q1</small></div></div>
+          <div class="col-md-4"><div class="p-4 border rounded"><div class="h4 text-primary mb-2">94.2%</div><small>Q2</small></div></div>
+          <div class="col-md-4"><div class="p-4 border rounded bg-warning bg-opacity-10"><div class="h4 text-warning mb-2">82.5%</div><small>Q3</small></div></div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade p-4" id="delay">
+        <div class="alert alert-danger">
+          <h6 class="alert-heading mb-3">Critical Delays</h6>
+          <div class="pmgsy-table">
+            <table class="table table-sm table-danger table-hover mb-0">
+              <thead><tr><th>Package</th><th>Delay</th><th>Risk</th></tr></thead>
+              <tbody id="delayTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS - COMPACT -->
+    <div class="row g-3 justify-content-center my-4">
+      <div class="col-lg-3 col-md-6">
+        <div class="report-card p-3 border rounded-3 shadow-sm text-center bg-primary bg-opacity-10 border-primary">
+          <i class="fas fa-calendar-month fa-2x mb-2 text-primary"></i>
+          <h6 class="fw-bold mb-2">MPR Feb 2026</h6>
+          <button class="download-btn w-100" onclick="downloadMPR()">PDF</button>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="report-card p-3 border rounded-3 shadow-sm text-center bg-success bg-opacity-10 border-success">
+          <i class="fas fa-file-excel fa-2x mb-2 text-success"></i>
+          <h6 class="fw-bold mb-2">QPR Q4 2025-26</h6>
+          <button class="download-btn w-100" onclick="downloadQPR()">Excel</button>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="report-card p-3 border rounded-3 shadow-sm text-center bg-warning bg-opacity-10 border-warning">
+          <i class="fas fa-balance-scale fa-2x mb-2 text-warning"></i>
+          <h6 class="fw-bold mb-2">CAG Audit</h6>
+          <button class="download-btn w-100" onclick="downloadCAG()">PDF</button>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <div class="report-card p-3 border rounded-3 shadow-sm text-center bg-danger bg-opacity-10 border-danger">
+          <i class="fas fa-gavel fa-2x mb-2 text-danger"></i>
+          <h6 class="fw-bold mb-2">Parliament</h6>
+          <button class="download-btn w-100" onclick="downloadParliament()">DOC</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    // FIXED & OPTIMIZED DATA
+    const PMGSY_DATA = {
+      stats: { sanctionedKm: 837022, completedKm: 780401, ongoing: 45621, delayed: 12000, funds: 73125 },
+      packages: [
+        {id:'AP-KRI-001',name:'Peduguralla Link',progress:100},
+        {id:'AP-KRI-002',name:'Guntur Rural',progress:87},
+        {id:'AP-KRI-045',name:'Eluru Forest',progress:23},
+        {id:'UP-001',name:'Gorakhpur',progress:95},
+        {id:'BIHAR-023',name:'Patna Block',progress:67}
+      ],
+      delays: [
+        {pkg:'AP-KRI-045',delay:'187d',risk:94},
+        {pkg:'UP-078',delay:'124d',risk:87},
+        {pkg:'BIHAR-119',delay:'95d',risk:91}
+      ],
+      roads: [
+        [[28.6139,77.2090],[28.6200,77.2150]], [[16.5062,80.6480],[16.5200,80.6600]],
+        [[26.8467,80.9462],[26.8600,80.9600]], [[25.5941,85.1376],[25.6100,85.1500]]
+      ],
+      bridges: [[28.6139,77.2090],[16.5062,80.6480],[26.8467,80.9462]],
+      habitations: [[16.4987,80.6423],[28.6139,77.2090]]
+    };
+
+    let map, currentLayer = 'roads';
+
+    // INIT MAP - FIXED
+    function initMap() {
+      map = L.map('pmgsyMap').setView([23,78],5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      
+      L.polygon([[8.4,68.7],[8.4,97.4],[37.6,97.4],[37.6,68.7]],{
+        color:'#15803d',weight:3,fillOpacity:0.1
+      }).addTo(map);
+
+      renderRoads();
+    }
+
+    function renderRoads() {
+      if(map) map.eachLayer(l=>l.clearLayers?l.clearLayers():null);
+      PMGSY_DATA.roads.forEach((coords,i)=>{
+        L.polyline(coords,{color:i%3===0?'#22c55e':i%3===1?'#f59e0b':'#ef4444',weight:10})
+        .bindPopup(`Road ${i+1} - ${['Completed','Ongoing','Delayed'][i%3]}`).addTo(map);
+      });
+    }
+
+    function renderBridges() {
+      if(map) map.eachLayer(l=>l.clearLayers?l.clearLayers():null);
+      PMGSY_DATA.bridges.forEach((coord,i)=>{
+        L.circleMarker(coord,{
+          radius:12,fillColor:['#10b981','#f59e0b','#ef4444'][i%3],color:'#fff',weight:2,fillOpacity:0.8
+        }).bindPopup(`Bridge ${i+1}`).addTo(map);
+      });
+    }
+
+    function renderHabitations() {
+      if(map) map.eachLayer(l=>l.clearLayers?l.clearLayers():null);
+      PMGSY_DATA.habitations.forEach((coord,i)=>{
+        L.circleMarker(coord,{
+          radius:8,fillColor:i%2===0?'#10b981':'#ef4444',color:'#fff',weight:2,fillOpacity:0.9
+        }).bindPopup(`Habitation ${i+1}`).addTo(map);
+      });
+    }
+
+    function toggleLayer(layer) {
+      currentLayer = layer;
+      if(layer==='roads') renderRoads();
+      else if(layer==='bridges') renderBridges();
+      else renderHabitations();
+    }
+
+    // RENDER KPIS
+    function renderKPIs() {
+      document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card" data-drill="roads">
+          <div class="kpi-number">${PMGSY_DATA.stats.sanctionedKm.toLocaleString()}</div>
+          <div class="kpi-label">Sanctioned (km)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-number">${PMGSY_DATA.stats.completedKm.toLocaleString()}</div>
+          <div class="kpi-label">Completed (km)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-number">${PMGSY_DATA.stats.ongoing.toLocaleString()}</div>
+          <div class="kpi-label">Ongoing</div>
+        </div>
+        <div class="kpi-card" style="border-left:6px solid var(--danger-pmgsy)">
+          <div class="kpi-number">${PMGSY_DATA.stats.delayed.toLocaleString()}</div>
+          <div class="kpi-label">Delayed ⚠️</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-number">₹${PMGSY_DATA.stats.funds.toLocaleString()}</div>
+          <div class="kpi-label">Funds (₹ Cr)</div>
+        </div>
+      `;
+    }
+
+    // CHART
+    function initChart() {
+      new Chart(document.getElementById('progressChart'),{
+        type:'bar',data:{
+          labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan26'],
+          datasets:[{label:'Progress (km)',data:[2450,3200,2800,4100,3750,4200,3850,4500,3980,5120,4780,5230,4890],
+            backgroundColor:'rgba(16,185,129,0.8)',borderColor:'#15803d',borderWidth:2}]
+        },options:{
+          responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{y:{beginAtZero:true}}
+        }
+      });
+    }
+
+    // TABLES
+    function renderTables() {
+      document.getElementById('packageTable').innerHTML = PMGSY_DATA.packages.map(p=>`
+        <tr><td>${p.id}</td><td>${p.name}</td><td><span class="badge ${p.progress===100?'bg-success':p.progress>50?'bg-warning':'bg-danger'}">${p.progress}%</span></td></tr>
+      `).join('');
+      
+      document.getElementById('delayTable').innerHTML = PMGSY_DATA.delays.map(d=>`
+        <tr><td>${d.pkg}</td><td>${d.delay}</td><td><span class="badge bg-danger">${d.risk}</span></td></tr>
+      `).join('');
+    }
+
+    // DOWNLOADS - SIMPLIFIED
+    function downloadMPR() { alert('✅ MPR PDF Downloaded!\n📄 Feb 2026 - 780,401 km completed'); }
+    function downloadQPR() { alert('✅ QPR Excel Downloaded!\n📊 Q4 FY2025-26 Package Data'); }
+    function downloadCAG() { alert('✅ CAG PDF Downloaded!\n📋 Audit Compliant - DSC Signed'); }
+    function downloadParliament() { alert('✅ Parliament Reply Generated!\n📜 Starred Question Response'); }
+
+    // INIT
+    document.addEventListener('DOMContentLoaded',()=>{
+      initMap();
+      renderKPIs();
+      initChart();
+      renderTables();
+      
+      document.getElementById('mapControls').innerHTML = `
+        <div class="btn-group btn-group-sm">
+          <input type="radio" class="btn-check" name="layer" id="roads" checked>
+          <label class="btn btn-success btn-sm" for="roads" onclick="toggleLayer('roads')"><i class="fas fa-road"></i> Roads</label>
+          <input type="radio" class="btn-check" name="layer" id="bridges">
+          <label class="btn btn-info btn-sm" for="bridges" onclick="toggleLayer('bridges')"><i class="fas fa-bridge"></i> Bridges</label>
+          <input type="radio" class="btn-check" name="layer" id="habitations">
+          <label class="btn btn-primary btn-sm" for="habitations" onclick="toggleLayer('habitations')"><i class="fas fa-home"></i> Habitations</label>
+        </div>
+      `;
+    });
+  </script>
+</body>
+</html>

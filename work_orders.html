@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Work Orders | NRIP - National Road Intelligence Platform</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       GOVERNMENT-GRADE DESIGN TOKENS (High contrast, no gimmicks)
+       ========================================================= */
+    :root{
+      --bg: #0b1220;
+      --surface: rgba(255,255,255,.96);
+      --surface-2: rgba(255,255,255,.92);
+      --border: rgba(15, 23, 42, .12);
+      --text: #0f172a;
+      --muted: #475569;
+
+      --primary: #1e40af;
+      --success: #166534;
+      --warning: #92400e;
+      --danger:  #991b1b;
+      --slate:   #334155;
+
+      --shadow: 0 10px 30px rgba(0,0,0,.15);
+      --radius: 14px;
+    }
+
+    body{
+      background: radial-gradient(900px 500px at 15% 10%, rgba(30,64,175,.25), transparent 55%),
+                  radial-gradient(900px 500px at 85% 90%, rgba(22,101,52,.18), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+    }
+
+    .app-shell{
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 18px 16px 26px;
+    }
+
+    /* Header (Sticky) */
+    .topbar{
+      position: sticky;
+      top: 0;
+      z-index: 1040;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,.55);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+
+    .brand-title{
+      font-weight: 800;
+      letter-spacing: .2px;
+      color: var(--primary);
+      margin: 0;
+      line-height: 1.1;
+    }
+    .brand-sub{
+      margin: 0;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    .pill{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.9);
+      font-weight: 700;
+      font-size: 12.5px;
+      color: var(--slate);
+      white-space: nowrap;
+    }
+
+    .status-dot{
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22,163,74,.15);
+    }
+
+
+
+     /* NEW HIGHWAY BACKGROUND */
+    .highway-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: 
+        url("{{ url_for('static', filename='images/aerial-top-view-of-highway-junction-interchange-road-drone-view-of-the-elevated-road-traffic-junctions-and-green-garden-transport-trucks-and-cars-driving-on-highway-infrastructure-in-moder.jpg') }}") center/cover no-repeat,
+        linear-gradient(135deg, rgba(30,60,114,0.85) 0%, rgba(42,82,152,0.9) 50%, rgba(15,52,96,0.95) 100%);
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      filter: brightness(1.05) contrast(1.1) saturate(1.15);
+      z-index: -2;
+    }
+
+    /* Cards */
+    .gov-card{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .card-h{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    .card-title{
+      margin: 0;
+      font-weight: 800;
+      font-size: 15.5px;
+      color: var(--text);
+    }
+
+    .card-b{
+      padding: 14px;
+    }
+
+    /* KPI tiles */
+    .kpi{
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      height: 100%;
+    }
+
+    .kpi .kpi-label{
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: .25px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .kpi .kpi-value{
+      font-weight: 900;
+      font-size: 22px;
+      line-height: 1.1;
+      margin-bottom: 4px;
+      color: var(--text);
+    }
+    .kpi .kpi-meta{
+      color: var(--muted);
+      font-size: 12.5px;
+      margin: 0;
+    }
+
+    .kpi-border-critical{ border-left: 6px solid var(--danger); }
+    .kpi-border-warning{  border-left: 6px solid var(--warning); }
+    .kpi-border-success{  border-left: 6px solid var(--success); }
+    .kpi-border-primary{  border-left: 6px solid var(--primary); }
+
+    /* Table area */
+    .table-wrap{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .table-toolbar{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items:center;
+      justify-content: space-between;
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(248,250,252,.9);
+    }
+
+    .form-control, .form-select{
+      border-radius: 12px;
+      border: 1px solid rgba(15,23,42,.18);
+    }
+    .form-control:focus, .form-select:focus{
+      box-shadow: 0 0 0 4px rgba(30,64,175,.12);
+      border-color: rgba(30,64,175,.55);
+    }
+
+    /* Sticky header pattern */
+    .table-scroll{
+      max-height: 520px;
+      overflow: auto;
+    }
+    table thead th{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #0f172a;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12.5px;
+      letter-spacing: .15px;
+      text-transform: uppercase;
+      border-bottom: 0;
+    }
+
+    table tbody td{
+      vertical-align: middle;
+      font-size: 13.5px;
+      color: #0f172a;
+    }
+
+    .badge-gov{
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 800;
+      font-size: 12px;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .b-critical{ background: rgba(153,27,27,.12); color: var(--danger); border-color: rgba(153,27,27,.25); }
+    .b-high{     background: rgba(146,64,14,.12); color: var(--warning); border-color: rgba(146,64,14,.25); }
+    .b-medium{   background: rgba(30,64,175,.10); color: var(--primary); border-color: rgba(30,64,175,.22); }
+    .b-low{      background: rgba(51,65,85,.10); color: var(--slate); border-color: rgba(51,65,85,.20); }
+
+    .b-ai{ background: rgba(30,64,175,.10); color: var(--primary); border-color: rgba(30,64,175,.22); }
+    .b-officer{ background: rgba(22,101,52,.10); color: var(--success); border-color: rgba(22,101,52,.22); }
+    .b-complaint{ background: rgba(146,64,14,.10); color: var(--warning); border-color: rgba(146,64,14,.22); }
+
+    .b-status{
+      background: rgba(2,6,23,.05);
+      border-color: rgba(2,6,23,.12);
+      color: #0f172a;
+    }
+
+    .btn-gov{
+      border-radius: 12px;
+      font-weight: 800;
+      padding: 8px 10px;
+    }
+
+    /* Right-side panels */
+    .small-note{
+      color: var(--muted);
+      font-size: 12.5px;
+      margin: 0;
+    }
+
+    /* Contractor cards */
+    .contractor-card{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      background: rgba(255,255,255,.95);
+    }
+
+    .contractor-title{
+      font-weight: 900;
+      margin: 0 0 4px;
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    .contractor-kpis{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .mini-kpi{
+      border: 1px solid rgba(15,23,42,.12);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(248,250,252,.9);
+    }
+    .mini-kpi small{ color: var(--muted); font-weight: 700; display:block; }
+    .mini-kpi b{ font-weight: 900; color: #0f172a; }
+
+    .badge-ai-best{
+      background: rgba(22,101,52,.10);
+      color: var(--success);
+      border: 1px solid rgba(22,101,52,.22);
+      font-weight: 900;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .flag-warn{
+      background: rgba(146,64,14,.10);
+      color: var(--warning);
+      border: 1px solid rgba(146,64,14,.22);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .flag-black{
+      background: rgba(153,27,27,.12);
+      color: var(--danger);
+      border: 1px solid rgba(153,27,27,.22);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    /* Timeline */
+    .timeline{
+      position: relative;
+      padding-left: 18px;
+    }
+    .timeline::before{
+      content:"";
+      position:absolute;
+      left: 7px;
+      top: 2px;
+      bottom: 2px;
+      width: 2px;
+      background: rgba(15,23,42,.15);
+    }
+    .t-item{
+      position: relative;
+      padding: 10px 12px 10px 12px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(15,23,42,.12);
+      border-radius: 12px;
+      background: rgba(248,250,252,.85);
+    }
+    .t-item::before{
+      content:"";
+      position:absolute;
+      left: -18px;
+      top: 14px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(30,64,175,.12);
+    }
+    .t-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .t-title{
+      font-weight: 900;
+      margin: 0;
+      font-size: 13.5px;
+    }
+    .t-meta{
+      margin: 0;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    /* Audit log */
+    .audit-row{
+      border: 1px solid rgba(15,23,42,.10);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(248,250,252,.9);
+      margin-bottom: 10px;
+    }
+    .audit-row b{ font-weight: 900; }
+    .audit-row small{ color: var(--muted); }
+
+    /* Ensure strong contrast for table text/background (Gov guidance) */
+    .contrast-note{
+      font-size: 12px;
+      color: #334155;
+    }
+
+    /* Responsive layout */
+    @media (max-width: 1200px){
+      .table-scroll{ max-height: 460px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- =========================================================
+         TOP BAR (Sticky)
+         ========================================================= -->
+    <div class="topbar mb-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h1 class="brand-title">Work Orders</h1>
+          <p class="brand-sub">National Road Work Order Management System • Audit & Accountability</p>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <div class="pill" aria-label="Current date and time">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="sysStatusText">System Live</span>
+            <span class="text-muted">•</span>
+            <span id="nowDate">—</span>
+            <span id="nowTime">—</span>
+          </div>
+
+          <div class="pill" aria-label="Officer identity and jurisdiction">
+            <span><b id="officerName">Officer</b></span>
+            <span class="text-muted">|</span>
+            <span id="jurisdiction">—</span>
+          </div>
+
+          <button class="btn btn-primary btn-gov" type="button" data-bs-toggle="modal" data-bs-target="#createModal">
+            Create Work Order
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         1) KPI DASHBOARD
+         ========================================================= -->
+    <div class="gov-card mb-3">
+      <div class="card-h">
+        <h2 class="card-title">Work Orders Dashboard (Summary)</h2>
+        <p class="small-note">Read-only KPIs derived from /work-orders and /budget (placeholder)</p>
+      </div>
+      <div class="card-b">
+        <div class="row g-3">
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="kpi kpi-border-primary">
+              <div class="kpi-label">Active Work Orders</div>
+              <div class="kpi-value" id="kpiActive">—</div>
+              <p class="kpi-meta">Open statuses excluding Closed</p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="kpi kpi-border-danger kpi-border-critical">
+              <div class="kpi-label">High-Priority</div>
+              <div class="kpi-value" id="kpiHigh">—</div>
+              <p class="kpi-meta">Critical + High priority</p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="kpi kpi-border-warning">
+              <div class="kpi-label">Overdue</div>
+              <div class="kpi-value" id="kpiOverdue">—</div>
+              <p class="kpi-meta">Due date exceeded</p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="kpi kpi-border-success">
+              <div class="kpi-label">Completed (Month)</div>
+              <div class="kpi-value" id="kpiCompletedMonth">—</div>
+              <p class="kpi-meta">Completed/Verified in month</p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="kpi kpi-border-primary">
+              <div class="kpi-label">Budget Utilized</div>
+              <div class="kpi-value" id="kpiBudgetUsed">—</div>
+              <p class="kpi-meta">₹ utilized (district)</p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 col-xl-2">
+            <div class="kpi kpi-border-primary">
+              <div class="kpi-label">Budget Allocated</div>
+              <div class="kpi-value" id="kpiBudgetAlloc">—</div>
+              <p class="kpi-meta">₹ allocated (district)</p>
+            </div>
+          </div>
+        </div>
+        <p class="contrast-note mt-3 mb-0">
+          Note: Text/background contrast maintained for field visibility and accessibility compliance. 
+        </p>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MAIN GRID: TABLE + RIGHT PANELS
+         ========================================================= -->
+    <div class="row g-3">
+
+      <!-- =========================================================
+           2) WORK ORDERS TABLE (Operational Core)
+           ========================================================= -->
+      <div class="col-12 col-xl-8">
+        <div class="gov-card">
+          <div class="card-h">
+            <h2 class="card-title">Work Orders Table (Operational Core)</h2>
+            <div class="d-flex align-items-center gap-2">
+              <span class="pill" title="Role based access placeholder">
+                Access: <b id="roleText">Officer</b>
+              </span>
+            </div>
+          </div>
+
+          <div class="card-b p-0">
+            <div class="table-wrap">
+              <!-- Toolbar: search + filters -->
+              <div class="table-toolbar">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <input id="searchInput" class="form-control" style="min-width:260px" placeholder="Search by Work Order ID or Road / Street" aria-label="Search work orders">
+                  <select id="statusFilter" class="form-select" style="min-width:180px" aria-label="Filter by status">
+                    <option value="">All Statuses</option>
+                    <option>Created</option>
+                    <option>Assigned</option>
+                    <option>Work Started</option>
+                    <option>Mid-Inspection</option>
+                    <option>Completed</option>
+                    <option>Verified</option>
+                    <option>Closed</option>
+                  </select>
+                  <select id="priorityFilter" class="form-select" style="min-width:180px" aria-label="Filter by priority">
+                    <option value="">All Priorities</option>
+                    <option>Critical</option>
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                  </select>
+                  <select id="contractorFilter" class="form-select" style="min-width:220px" aria-label="Filter by contractor">
+                    <option value="">All Contractors</option>
+                  </select>
+                </div>
+
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                  <input id="fromDate" type="date" class="form-control" aria-label="From date">
+                  <input id="toDate" type="date" class="form-control" aria-label="To date">
+                  <select id="sortBy" class="form-select" style="min-width:190px" aria-label="Sort by urgency">
+                    <option value="urgency">Sort: Urgency</option>
+                    <option value="due_asc">Sort: Due Date (Asc)</option>
+                    <option value="due_desc">Sort: Due Date (Desc)</option>
+                    <option value="cost_desc">Sort: Cost (High-Low)</option>
+                    <option value="cost_asc">Sort: Cost (Low-High)</option>
+                  </select>
+                  <button class="btn btn-outline-secondary btn-gov" id="clearFiltersBtn" type="button">Clear</button>
+                </div>
+              </div>
+
+              <!-- Table -->
+              <div class="table-scroll" role="region" aria-label="Work orders list" tabindex="0">
+                <table class="table table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>Work Order ID</th>
+                      <th>Road / Street Name</th>
+                      <th>Issue Type</th>
+                      <th>Priority</th>
+                      <th>Source</th>
+                      <th>Assigned Contractor</th>
+                      <th class="text-end">Estimated Cost (₹)</th>
+                      <th>Start Date</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="woTbody">
+                    <!-- Injected by JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Pagination -->
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-3 border-top" style="background: rgba(248,250,252,.9);">
+                <div class="small-note">
+                  Showing <b id="pageInfo">—</b>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  <select id="pageSize" class="form-select" style="width: 120px" aria-label="Rows per page">
+                    <option value="10">10 rows</option>
+                    <option value="20" selected>20 rows</option>
+                    <option value="50">50 rows</option>
+                  </select>
+
+                  <button class="btn btn-outline-secondary btn-gov" id="prevPageBtn" type="button">Prev</button>
+                  <span class="pill" aria-label="Current page"><span>Page</span> <b id="pageNumber">1</b></span>
+                  <button class="btn btn-outline-secondary btn-gov" id="nextPageBtn" type="button">Next</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================
+           RIGHT COLUMN: Create/Assign + Lifecycle + Audit
+           ========================================================= -->
+      <div class="col-12 col-xl-4">
+
+        <!-- 4) Contractor Assignment (Intelligent) -->
+        <div class="gov-card mb-3">
+          <div class="card-h">
+            <h2 class="card-title">Contractor Assignment (Intelligent)</h2>
+            <p class="small-note">AI recommendation is advisory; overrides require reason</p>
+          </div>
+          <div class="card-b">
+            <div class="mb-2">
+              <label class="form-label fw-bold" for="selectedWO">Selected Work Order</label>
+              <select id="selectedWO" class="form-select" aria-label="Selected work order for assignment"></select>
+              <div class="small-note mt-2">Backend placeholder: POST /assign</div>
+            </div>
+
+            <div id="contractorList" class="d-grid gap-2">
+              <!-- Contractor cards injected -->
+            </div>
+
+            <div class="mt-3">
+              <label class="form-label fw-bold" for="overrideReason">Override Reason (mandatory if not best match)</label>
+              <textarea id="overrideReason" class="form-control" rows="3" placeholder="Provide justification for deviation (audit recorded)."></textarea>
+            </div>
+
+            <div class="d-grid mt-3">
+              <button class="btn btn-primary btn-gov" id="assignBtn" type="button">
+                Assign Contractor (Audit Logged)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5) Lifecycle Tracking -->
+        <div class="gov-card mb-3">
+          <div class="card-h">
+            <h2 class="card-title">Lifecycle Tracking</h2>
+            <p class="small-note">Strict status flow with evidence checkpoints</p>
+          </div>
+          <div class="card-b">
+            <div class="timeline" id="timelineBox">
+              <!-- Timeline items injected -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 6) Audit & Transparency Panel -->
+        <div class="gov-card">
+          <div class="card-h">
+            <h2 class="card-title">Audit & Transparency (Read-only)</h2>
+            <p class="small-note">Tamper-evident presentation • backend: /audit-log</p>
+          </div>
+          <div class="card-b" id="auditBox">
+            <!-- Audit rows injected -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       3) CREATE WORK ORDER MODAL
+       ========================================================= -->
+  <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 16px;">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="createModalLabel">Create Work Order</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- NOTE: This form is display-only; backend hooks are commented below -->
+          <div class="alert alert-secondary" role="alert">
+            Work Order IDs are auto-generated. Critical issues require justification. Attachments required for AI-detected issues.
+          </div>
+
+          <form id="createForm" class="needs-validation" novalidate>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Auto Work Order ID</label>
+                <input id="woIdField" type="text" class="form-control" readonly>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Linked Detection / Inspection ID</label>
+                <input id="linkedId" type="text" class="form-control" placeholder="DET-XXXX / INSP-XXXX / CMP-XXXX" required>
+                <div class="invalid-feedback">Linked ID is required.</div>
+              </div>
+
+              <div class="col-md-8">
+                <label class="form-label fw-bold">Road / Street (Auto-filled or manual)</label>
+                <input id="roadName" type="text" class="form-control" placeholder="e.g., NH-16 Benz Circle - MG Road" required>
+                <div class="invalid-feedback">Road name is required.</div>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Issue Type</label>
+                <select id="issueType" class="form-select" required>
+                  <option value="" selected disabled>Select</option>
+                  <option>Pothole</option>
+                  <option>Resurfacing</option>
+                  <option>Drainage</option>
+                </select>
+                <div class="invalid-feedback">Issue type is required.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Source</label>
+                <select id="sourceType" class="form-select" required>
+                  <option value="" selected disabled>Select</option>
+                  <option>AI</option>
+                  <option>Officer</option>
+                  <option>Complaint</option>
+                </select>
+                <div class="invalid-feedback">Source is required.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Priority</label>
+                <select id="priority" class="form-select" required>
+                  <option value="" selected disabled>Select</option>
+                  <option>Critical</option>
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+                <div class="invalid-feedback">Priority is required.</div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-bold">Problem Description</label>
+                <textarea id="problemDesc" class="form-control" rows="3" placeholder="Describe the issue, location markers, traffic impact." required></textarea>
+                <div class="invalid-feedback">Description is required.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Estimated Budget (₹)</label>
+                <input id="budgetEst" type="number" class="form-control" min="0" step="1000" placeholder="e.g., 450000" required>
+                <div class="invalid-feedback">Budget is required.</div>
+                <small class="text-muted">Validation: must not exceed district allocation (enforced client-side for demo).</small>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Suggested Completion (days)</label>
+                <input id="days" type="number" class="form-control" min="1" max="365" value="7" required>
+                <div class="invalid-feedback">Completion days are required.</div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Evidence (Image/Video)</label>
+                <input id="evidence" type="file" class="form-control" accept="image/*,video/*">
+                <small class="text-muted">Mandatory for AI source (demo validation).</small>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Officer Remarks</label>
+                <input id="remarks" type="text" class="form-control" placeholder="Justification / constraints / safety notes">
+              </div>
+
+              <div class="col-12" id="criticalJustifyBox" style="display:none;">
+                <label class="form-label fw-bold text-danger">Critical Justification (mandatory)</label>
+                <textarea id="criticalJustify" class="form-control" rows="2" placeholder="Explain why this is critical (safety/traffic/accident risk)."></textarea>
+              </div>
+            </div>
+          </form>
+
+          <hr class="my-4">
+          <div class="small-note">
+            Backend integration points (placeholders): POST /work-orders, POST /audit-log.
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-gov" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary btn-gov" id="createSubmitBtn">Create (Audit Logged)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action modal (confirmation for sensitive actions) -->
+  <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 16px;">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Confirm Action</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="confirmText">
+          —
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary btn-gov" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger btn-gov" id="confirmYesBtn">Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
+ <!-- NEW HIGHWAY BACKGROUND -->
+  <div class="highway-bg"></div>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    /* =========================================================
+       DUMMY DATA (replace with API calls)
+       - GET /work-orders
+       - GET /contractors
+       - GET /audit-log?workOrderId=...
+       - POST /work-orders
+       - POST /assign
+       ========================================================= */
+
+    const SESSION = {
+      officerName: "District Engineer",
+      jurisdiction: "Vijayawada Urban Division",
+      role: "Officer", // Officer | Senior Engineer | Minister
+      districtBudgetAllocated: 42000000, // ₹ 4.2 Cr
+    };
+
+    const CONTRACTORS = [
+      {
+        id: "CTR-AP-001",
+        name: "Sri Lakshmi Infra Works",
+        completedProjects: 214,
+        onTimePct: 91,
+        qualityRating: 4.6,
+        activeWorkload: 8,
+        flags: [],
+        expertise: ["Pothole", "Resurfacing"]
+      },
+      {
+        id: "CTR-AP-014",
+        name: "VMC Roads & Drainage Contractors",
+        completedProjects: 152,
+        onTimePct: 86,
+        qualityRating: 4.2,
+        activeWorkload: 12,
+        flags: ["warning"],
+        expertise: ["Drainage", "Pothole"]
+      },
+      {
+        id: "CTR-AP-027",
+        name: "Coastal Highway Maintenance Ltd",
+        completedProjects: 98,
+        onTimePct: 78,
+        qualityRating: 3.8,
+        activeWorkload: 18,
+        flags: ["blacklist"],
+        expertise: ["Resurfacing"]
+      }
+    ];
+
+    // Work orders (operational core)
+    let WORK_ORDERS = [
+      {
+        id: "WO-AP-2026-00017",
+        road: "NH-16 Benz Circle - MG Road",
+        issueType: "Pothole",
+        priority: "Critical",
+        source: "AI",
+        contractor: "Sri Lakshmi Infra Works",
+        cost: 950000,
+        startDate: "2026-02-01",
+        dueDate: "2026-02-03",
+        status: "Assigned",
+        linkedId: "DET-AP-883190",
+        district: "Vijayawada",
+        createdAt: "2026-02-01T09:10:00+05:30"
+      },
+      {
+        id: "WO-AP-2026-00018",
+        road: "Eluru Road (Urban Stretch)",
+        issueType: "Resurfacing",
+        priority: "High",
+        source: "Officer",
+        contractor: "VMC Roads & Drainage Contractors",
+        cost: 6200000,
+        startDate: "2026-02-02",
+        dueDate: "2026-02-20",
+        status: "Work Started",
+        linkedId: "INSP-AP-77821",
+        district: "Vijayawada",
+        createdAt: "2026-02-02T10:35:00+05:30"
+      },
+      {
+        id: "WO-AP-2026-00019",
+        road: "Ring Road (Ward-12) Drain Line",
+        issueType: "Drainage",
+        priority: "Medium",
+        source: "Complaint",
+        contractor: "VMC Roads & Drainage Contractors",
+        cost: 780000,
+        startDate: "2026-02-02",
+        dueDate: "2026-02-10",
+        status: "Created",
+        linkedId: "CMP-AP-554120",
+        district: "Vijayawada",
+        createdAt: "2026-02-02T11:05:00+05:30"
+      },
+      {
+        id: "WO-AP-2026-00012",
+        road: "NH-16 Service Road (KM 241–244)",
+        issueType: "Pothole",
+        priority: "High",
+        source: "AI",
+        contractor: "Sri Lakshmi Infra Works",
+        cost: 1250000,
+        startDate: "2026-01-20",
+        dueDate: "2026-01-28",
+        status: "Mid-Inspection",
+        linkedId: "DET-AP-811202",
+        district: "Vijayawada",
+        createdAt: "2026-01-20T14:20:00+05:30"
+      },
+      {
+        id: "WO-AP-2026-00009",
+        road: "MG Road (CBD) Patch Repair",
+        issueType: "Pothole",
+        priority: "Low",
+        source: "Complaint",
+        contractor: "Sri Lakshmi Infra Works",
+        cost: 180000,
+        startDate: "2026-01-10",
+        dueDate: "2026-01-18",
+        status: "Closed",
+        linkedId: "CMP-AP-441901",
+        district: "Vijayawada",
+        createdAt: "2026-01-10T09:00:00+05:30"
+      }
+    ];
+
+    // Audit logs per work order (read-only)
+    const AUDIT_LOGS = {
+      "WO-AP-2026-00017": [
+        { ts: "2026-02-01 09:10 IST", who: "District Engineer", action: "Created", detail: "Source AI, linked DET-AP-883190, budget ₹9,50,000." },
+        { ts: "2026-02-01 09:22 IST", who: "System", action: "AI Contractor Recommendation", detail: "Recommended Sri Lakshmi Infra Works (match: pothole, availability high)." },
+        { ts: "2026-02-01 09:30 IST", who: "District Engineer", action: "Assigned Contractor", detail: "Assigned Sri Lakshmi Infra Works; due date 2026-02-03." }
+      ],
+      "WO-AP-2026-00018": [
+        { ts: "2026-02-02 10:35 IST", who: "District Engineer", action: "Created", detail: "Manual inspection INSP-AP-77821, resurfacing." },
+        { ts: "2026-02-02 11:10 IST", who: "Senior Engineer", action: "Approved Budget", detail: "Budget verified within allocation." },
+        { ts: "2026-02-02 11:25 IST", who: "District Engineer", action: "Status Update", detail: "Status moved to Work Started; contractor mobilized." }
+      ]
+    };
+
+    // Lifecycle timeline templates
+    const STATUS_FLOW = ["Created","Assigned","Work Started","Mid-Inspection","Completed","Verified","Closed"];
+
+    function buildLifecycle(wo){
+      // Demo: Create a plausible timeline from status.
+      const idx = STATUS_FLOW.indexOf(wo.status);
+      const base = [];
+      STATUS_FLOW.forEach((s, i) => {
+        const done = i <= idx;
+        base.push({
+          status: s,
+          ts: done ? (i === 0 ? wo.createdAt.replace("T"," ").slice(0,16) + " IST" : "—") : "—",
+          user: done ? (i === 0 ? "District Engineer" : "Assigned Authority") : "—",
+          geo: done ? "Geo: captured (demo)" : "—",
+          evidence: done ? (s === "Created" ? "Evidence: linked record" : "Evidence: pending/available") : "—"
+        });
+      });
+      return base;
+    }
+
+    /* =========================================================
+       UTILITIES
+       ========================================================= */
+    const fmtINR = (n) => new Intl.NumberFormat('en-IN').format(n);
+    const todayISO = () => new Date().toISOString().slice(0,10);
+
+    function priorityRank(p){
+      return ({Critical: 4, High: 3, Medium: 2, Low: 1}[p] ?? 0);
+    }
+
+    function statusRank(s){
+      return STATUS_FLOW.indexOf(s);
+    }
+
+    function isOverdue(wo){
+      if (wo.status === "Closed") return false;
+      const now = new Date();
+      const due = new Date(wo.dueDate + "T23:59:59");
+      return due < now;
+    }
+
+    function badgePriority(p){
+      if (p === "Critical") return `<span class="badge-gov b-critical">Critical</span>`;
+      if (p === "High") return `<span class="badge-gov b-high">High</span>`;
+      if (p === "Medium") return `<span class="badge-gov b-medium">Medium</span>`;
+      return `<span class="badge-gov b-low">Low</span>`;
+    }
+
+    function badgeSource(s){
+      if (s === "AI") return `<span class="badge-gov b-ai">AI</span>`;
+      if (s === "Officer") return `<span class="badge-gov b-officer">Officer</span>`;
+      return `<span class="badge-gov b-complaint">Complaint</span>`;
+    }
+
+    function badgeStatus(s){
+      return `<span class="badge-gov b-status">${s}</span>`;
+    }
+
+    /* =========================================================
+       STATE (filtering/pagination)
+       ========================================================= */
+    const UI = {
+      page: 1,
+      pageSize: 20,
+      selectedWO: null
+    };
+
+    /* =========================================================
+       RENDER: KPIs
+       ========================================================= */
+    function renderKPIs(){
+      const active = WORK_ORDERS.filter(w => w.status !== "Closed").length;
+      const high = WORK_ORDERS.filter(w => ["Critical","High"].includes(w.priority) && w.status !== "Closed").length;
+      const overdue = WORK_ORDERS.filter(w => isOverdue(w)).length;
+
+      const now = new Date();
+      const month = now.getMonth();
+      const year = now.getFullYear();
+      const completedMonth = WORK_ORDERS.filter(w => {
+        if (!["Completed","Verified","Closed"].includes(w.status)) return false;
+        const sd = new Date(w.startDate);
+        return sd.getMonth() === month && sd.getFullYear() === year;
+      }).length;
+
+      const used = WORK_ORDERS.reduce((sum, w) => sum + (w.status !== "Closed" ? w.cost : w.cost), 0);
+      const alloc = SESSION.districtBudgetAllocated;
+
+      document.getElementById("kpiActive").textContent = active;
+      document.getElementById("kpiHigh").textContent = high;
+      document.getElementById("kpiOverdue").textContent = overdue;
+      document.getElementById("kpiCompletedMonth").textContent = completedMonth;
+      document.getElementById("kpiBudgetUsed").textContent = "₹ " + fmtINR(used);
+      document.getElementById("kpiBudgetAlloc").textContent = "₹ " + fmtINR(alloc);
+    }
+
+    /* =========================================================
+       FILTER + SORT + PAGE
+       ========================================================= */
+    function getFiltered(){
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      const st = document.getElementById("statusFilter").value;
+      const pr = document.getElementById("priorityFilter").value;
+      const ctr = document.getElementById("contractorFilter").value;
+      const from = document.getElementById("fromDate").value;
+      const to = document.getElementById("toDate").value;
+      const sortBy = document.getElementById("sortBy").value;
+
+      let list = [...WORK_ORDERS];
+
+      if (q){
+        list = list.filter(w =>
+          w.id.toLowerCase().includes(q) ||
+          w.road.toLowerCase().includes(q)
+        );
+      }
+      if (st) list = list.filter(w => w.status === st);
+      if (pr) list = list.filter(w => w.priority === pr);
+      if (ctr) list = list.filter(w => w.contractor === ctr);
+
+      if (from){
+        const f = new Date(from);
+        list = list.filter(w => new Date(w.startDate) >= f);
+      }
+      if (to){
+        const t = new Date(to);
+        list = list.filter(w => new Date(w.startDate) <= t);
+      }
+
+      // Sort
+      if (sortBy === "urgency"){
+        list.sort((a,b) => {
+          // higher priority first, overdue first, earlier due first
+          const odA = isOverdue(a) ? 1 : 0;
+          const odB = isOverdue(b) ? 1 : 0;
+          if (odA !== odB) return odB - odA;
+          const prA = priorityRank(a.priority);
+          const prB = priorityRank(b.priority);
+          if (prA !== prB) return prB - prA;
+          return new Date(a.dueDate) - new Date(b.dueDate);
+        });
+      } else if (sortBy === "due_asc"){
+        list.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate));
+      } else if (sortBy === "due_desc"){
+        list.sort((a,b) => new Date(b.dueDate) - new Date(a.dueDate));
+      } else if (sortBy === "cost_desc"){
+        list.sort((a,b) => b.cost - a.cost);
+      } else if (sortBy === "cost_asc"){
+        list.sort((a,b) => a.cost - b.cost);
+      }
+
+      return list;
+    }
+
+    function getPaged(list){
+      const start = (UI.page - 1) * UI.pageSize;
+      return list.slice(start, start + UI.pageSize);
+    }
+
+    /* =========================================================
+       RENDER: TABLE
+       ========================================================= */
+    function renderTable(){
+      const list = getFiltered();
+      const total = list.length;
+      const pages = Math.max(1, Math.ceil(total / UI.pageSize));
+      if (UI.page > pages) UI.page = pages;
+
+      const rows = getPaged(list);
+      const tbody = document.getElementById("woTbody");
+      tbody.innerHTML = "";
+
+      rows.forEach(w => {
+        const overdue = isOverdue(w);
+        const overdueTag = overdue ? `<span class="badge-gov b-critical">Overdue</span>` : "";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><b>${w.id}</b><div class="small-note">Linked: ${w.linkedId}</div></td>
+          <td>${w.road}<div class="small-note">District: ${w.district}</div></td>
+          <td>${w.issueType}</td>
+          <td>${badgePriority(w.priority)} ${overdueTag}</td>
+          <td>${badgeSource(w.source)}</td>
+          <td>${w.contractor || "—"}</td>
+          <td class="text-end">₹ ${fmtINR(w.cost)}</td>
+          <td>${w.startDate}</td>
+          <td>${w.dueDate}</td>
+          <td>${badgeStatus(w.status)}</td>
+          <td class="text-end">
+            <button class="btn btn-outline-primary btn-gov btn-sm" data-action="view" data-id="${w.id}">View</button>
+            <button class="btn btn-outline-secondary btn-gov btn-sm" data-action="audit" data-id="${w.id}">Audit</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("pageNumber").textContent = String(UI.page);
+      const startN = total === 0 ? 0 : (UI.page - 1) * UI.pageSize + 1;
+      const endN = Math.min(total, (UI.page - 1) * UI.pageSize + rows.length);
+      document.getElementById("pageInfo").textContent = `${startN}–${endN} of ${total}`;
+
+      // Default selection for right panels
+      if (!UI.selectedWO && rows.length) {
+        UI.selectedWO = rows[0].id;
+      }
+      syncSelectedWO();
+    }
+
+    /* =========================================================
+       SELECTED WORK ORDER PANELS
+       ========================================================= */
+    function syncSelectedWO(){
+      // Populate dropdown with current filtered list (not just current page)
+      const list = getFiltered();
+      const sel = document.getElementById("selectedWO");
+      sel.innerHTML = "";
+      list.slice(0, 150).forEach(w => {
+        const opt = document.createElement("option");
+        opt.value = w.id;
+        opt.textContent = `${w.id} — ${w.road}`;
+        sel.appendChild(opt);
+      });
+
+      if (UI.selectedWO && [...sel.options].some(o => o.value === UI.selectedWO)) {
+        sel.value = UI.selectedWO;
+      } else if (sel.options.length) {
+        UI.selectedWO = sel.options[0].value;
+      }
+
+      renderTimeline(UI.selectedWO);
+      renderAudit(UI.selectedWO);
+      renderContractors(UI.selectedWO);
+    }
+
+    /* =========================================================
+       CONTRACTOR INTELLIGENCE (AI Recommendation display)
+       ========================================================= */
+    function scoreContractor(c, wo){
+      // Transparent scoring for demo: match expertise + performance + availability
+      const expertiseMatch = c.expertise.includes(wo.issueType) ? 35 : 10;
+      const perf = (c.onTimePct * 0.25) + (c.qualityRating * 10); // 0..(25+50)
+      const availability = Math.max(0, 25 - c.activeWorkload); // fewer workload -> higher
+      const penalty = c.flags.includes("blacklist") ? 999 : (c.flags.includes("warning") ? 10 : 0);
+      return (expertiseMatch + perf + availability) - penalty;
+    }
+
+    function renderContractors(woId){
+      const wo = WORK_ORDERS.find(w => w.id === woId);
+      if (!wo) return;
+
+      const scored = CONTRACTORS.map(c => ({...c, score: scoreContractor(c, wo)}))
+        .sort((a,b) => b.score - a.score);
+
+      const best = scored[0];
+      const box = document.getElementById("contractorList");
+      box.innerHTML = "";
+
+      scored.forEach((c, idx) => {
+        const isBest = c.id === best.id;
+        const flags = c.flags.includes("blacklist") ? `<span class="flag-black">Blacklisted</span>` :
+                      c.flags.includes("warning") ? `<span class="flag-warn">Warning Flag</span>` : "";
+
+        const recExplain = `
+          <div class="small-note">
+            Recommendation basis: expertise match ${c.expertise.includes(wo.issueType) ? "Yes" : "No"}, on-time ${c.onTimePct}%, quality ${c.qualityRating}/5, workload ${c.activeWorkload}.
+          </div>
+        `;
+
+        const disabled = c.flags.includes("blacklist") ? "disabled" : "";
+        box.insertAdjacentHTML("beforeend", `
+          <div class="contractor-card">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div>
+                <div class="contractor-title">${c.name}</div>
+                <div class="small-note">Contractor ID: ${c.id}</div>
+              </div>
+              <div class="d-flex flex-column align-items-end gap-2">
+                ${isBest ? `<span class="badge-ai-best">AI Best Match</span>` : `<span class="pill">Score: <b>${Math.round(c.score)}</b></span>`}
+                ${flags}
+              </div>
+            </div>
+
+            <div class="contractor-kpis">
+              <div class="mini-kpi"><small>Completed</small><b>${c.completedProjects}</b></div>
+              <div class="mini-kpi"><small>On-time %</small><b>${c.onTimePct}%</b></div>
+              <div class="mini-kpi"><small>Quality</small><b>${c.qualityRating}/5</b></div>
+              <div class="mini-kpi"><small>Active WO</small><b>${c.activeWorkload}</b></div>
+            </div>
+
+            ${recExplain}
+
+            <div class="d-grid mt-2">
+              <button class="btn btn-outline-primary btn-gov" data-ctr="${c.name}" data-best="${isBest ? "1" : "0"}" ${disabled}>
+                Select ${isBest ? "(Recommended)" : ""}
+              </button>
+            </div>
+          </div>
+        `);
+      });
+
+      // selection buttons
+      box.querySelectorAll("button[data-ctr]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          box.querySelectorAll("button[data-ctr]").forEach(b => b.classList.remove("btn-primary"));
+          btn.classList.add("btn-primary");
+          btn.classList.remove("btn-outline-primary");
+          box.dataset.selectedContractor = btn.getAttribute("data-ctr");
+          box.dataset.selectedIsBest = btn.getAttribute("data-best");
+        });
+      });
+
+      // Preselect current contractor if exists; else best.
+      const current = wo.contractor;
+      const currentBtn = [...box.querySelectorAll("button[data-ctr]")].find(b => b.getAttribute("data-ctr") === current);
+      if (currentBtn) currentBtn.click();
+      else {
+        const bestBtn = [...box.querySelectorAll("button[data-ctr]")].find(b => b.getAttribute("data-best") === "1");
+        if (bestBtn) bestBtn.click();
+      }
+    }
+
+    /* =========================================================
+       TIMELINE + AUDIT
+       ========================================================= */
+    function renderTimeline(woId){
+      const wo = WORK_ORDERS.find(w => w.id === woId);
+      const box = document.getElementById("timelineBox");
+      box.innerHTML = "";
+      if (!wo) return;
+
+      const items = buildLifecycle(wo);
+      items.forEach(it => {
+        box.insertAdjacentHTML("beforeend", `
+          <div class="t-item">
+            <div class="t-head">
+              <p class="t-title">${it.status}</p>
+              <span class="pill">${wo.status === it.status ? "<b>Current</b>" : "Step"}</span>
+            </div>
+            <p class="t-meta"><b>Timestamp:</b> ${it.ts}</p>
+            <p class="t-meta"><b>Responsible:</b> ${it.user}</p>
+            <p class="t-meta"><b>${it.geo}</b></p>
+            <p class="t-meta"><b>${it.evidence}</b></p>
+          </div>
+        `);
+      });
+    }
+
+    function renderAudit(woId){
+      const logs = AUDIT_LOGS[woId] || [
+        { ts: "—", who: "System", action: "No audit events loaded", detail: "Backend placeholder: GET /audit-log?workOrderId=" + woId }
+      ];
+      const box = document.getElementById("auditBox");
+      box.innerHTML = "";
+      logs.forEach(l => {
+        box.insertAdjacentHTML("beforeend", `
+          <div class="audit-row">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <div><b>${l.action}</b> <small>by ${l.who}</small></div>
+              <small>${l.ts}</small>
+            </div>
+            <div class="small-note mt-1">${l.detail}</div>
+          </div>
+        `);
+      });
+    }
+
+    /* =========================================================
+       EVENTS: Table row actions
+       ========================================================= */
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+
+      const id = btn.getAttribute("data-id");
+      const action = btn.getAttribute("data-action");
+
+      UI.selectedWO = id;
+      syncSelectedWO();
+
+      if (action === "view"){
+        // In production: navigate to detail page or open side panel.
+        toast(`Selected ${id} for details.`, "primary");
+      }
+      if (action === "audit"){
+        toast(`Loaded audit panel for ${id}.`, "secondary");
+      }
+    });
+
+    /* =========================================================
+       EVENTS: Filters + pagination
+       ========================================================= */
+    function wireFilters(){
+      ["searchInput","statusFilter","priorityFilter","contractorFilter","fromDate","toDate","sortBy"].forEach(id => {
+        document.getElementById(id).addEventListener("input", () => { UI.page = 1; renderTable(); });
+        document.getElementById(id).addEventListener("change", () => { UI.page = 1; renderTable(); });
+      });
+
+      document.getElementById("pageSize").addEventListener("change", (e) => {
+        UI.pageSize = parseInt(e.target.value, 10);
+        UI.page = 1;
+        renderTable();
+      });
+
+      document.getElementById("prevPageBtn").addEventListener("click", () => {
+        if (UI.page > 1) UI.page -= 1;
+        renderTable();
+      });
+      document.getElementById("nextPageBtn").addEventListener("click", () => {
+        const total = getFiltered().length;
+        const pages = Math.max(1, Math.ceil(total / UI.pageSize));
+        if (UI.page < pages) UI.page += 1;
+        renderTable();
+      });
+
+      document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("statusFilter").value = "";
+        document.getElementById("priorityFilter").value = "";
+        document.getElementById("contractorFilter").value = "";
+        document.getElementById("fromDate").value = "";
+        document.getElementById("toDate").value = "";
+        document.getElementById("sortBy").value = "urgency";
+        UI.page = 1;
+        renderTable();
+      });
+
+      document.getElementById("selectedWO").addEventListener("change", (e) => {
+        UI.selectedWO = e.target.value;
+        renderTimeline(UI.selectedWO);
+        renderAudit(UI.selectedWO);
+        renderContractors(UI.selectedWO);
+      });
+    }
+
+    /* =========================================================
+       EVENTS: Assignment (Audit logged)
+       ========================================================= */
+    document.getElementById("assignBtn").addEventListener("click", () => {
+      const woId = document.getElementById("selectedWO").value;
+      const wo = WORK_ORDERS.find(w => w.id === woId);
+      if (!wo) return;
+
+      const chosen = document.getElementById("contractorList").dataset.selectedContractor;
+      const isBest = document.getElementById("contractorList").dataset.selectedIsBest === "1";
+      if (!chosen){
+        toast("Select a contractor before assignment.", "danger");
+        return;
+      }
+
+      const reason = document.getElementById("overrideReason").value.trim();
+      if (!isBest && reason.length < 10){
+        toast("Override reason is required (min 10 characters) for audit compliance.", "warning");
+        return;
+      }
+
+      if (chosen !== wo.contractor){
+        // Simulated assign + audit record
+        wo.contractor = chosen;
+        wo.status = wo.status === "Created" ? "Assigned" : wo.status;
+
+        if (!AUDIT_LOGS[woId]) AUDIT_LOGS[woId] = [];
+        AUDIT_LOGS[woId].push({
+          ts: new Date().toLocaleString("en-IN").replaceAll("/", "-"),
+          who: SESSION.officerName,
+          action: "Contractor Assignment",
+          detail: `Assigned to ${chosen}. ${isBest ? "AI recommendation accepted." : "Override reason: " + reason}`
+        });
+
+        document.getElementById("overrideReason").value = "";
+        toast("Contractor assigned and audit logged.", "success");
+        renderKPIs();
+        renderTable();
+        renderAudit(woId);
+      } else {
+        toast("Selected contractor is already assigned.", "secondary");
+      }
+    });
+
+    /* =========================================================
+       CREATE WORK ORDER (Validation rules)
+       ========================================================= */
+    function newWorkOrderId(){
+      const y = new Date().getFullYear();
+      const seq = String(Math.floor(10000 + Math.random()*89999));
+      return `WO-AP-${y}-${seq}`;
+    }
+
+    function openCreateModalDefaults(){
+      document.getElementById("woIdField").value = newWorkOrderId();
+      document.getElementById("linkedId").value = "";
+      document.getElementById("roadName").value = "";
+      document.getElementById("issueType").value = "";
+      document.getElementById("sourceType").value = "";
+      document.getElementById("priority").value = "";
+      document.getElementById("problemDesc").value = "";
+      document.getElementById("budgetEst").value = "";
+      document.getElementById("days").value = "7";
+      document.getElementById("evidence").value = "";
+      document.getElementById("remarks").value = "";
+      document.getElementById("criticalJustify").value = "";
+      document.getElementById("criticalJustifyBox").style.display = "none";
+      document.getElementById("createForm").classList.remove("was-validated");
+    }
+
+    document.getElementById("createModal").addEventListener("show.bs.modal", openCreateModalDefaults);
+
+    document.getElementById("priority").addEventListener("change", (e) => {
+      const isCritical = e.target.value === "Critical";
+      document.getElementById("criticalJustifyBox").style.display = isCritical ? "block" : "none";
+    });
+
+    document.getElementById("createSubmitBtn").addEventListener("click", () => {
+      const form = document.getElementById("createForm");
+      if (!form.checkValidity()){
+        form.classList.add("was-validated");
+        toast("Please correct highlighted fields.", "danger");
+        return;
+      }
+
+      const source = document.getElementById("sourceType").value;
+      const pr = document.getElementById("priority").value;
+
+      // Mandatory attachments for AI source
+      const evidence = document.getElementById("evidence").files;
+      if (source === "AI" && (!evidence || evidence.length === 0)){
+        toast("Evidence attachment is mandatory for AI-detected issues.", "warning");
+        return;
+      }
+
+      // Critical justification required
+      const justify = document.getElementById("criticalJustify").value.trim();
+      if (pr === "Critical" && justify.length < 12){
+        toast("Critical justification is mandatory (min 12 characters).", "warning");
+        return;
+      }
+
+      // Budget cannot exceed allocation (demo: remaining = alloc - used)
+      const used = WORK_ORDERS.reduce((sum, w) => sum + w.cost, 0);
+      const alloc = SESSION.districtBudgetAllocated;
+      const remaining = Math.max(0, alloc - used);
+      const est = Number(document.getElementById("budgetEst").value || 0);
+
+      if (est > remaining){
+        toast(`Budget exceeds remaining district allocation. Remaining: ₹ ${fmtINR(remaining)}`, "danger");
+        return;
+      }
+
+      // Create
+      const days = Number(document.getElementById("days").value);
+      const start = todayISO();
+      const due = new Date();
+      due.setDate(due.getDate() + days);
+      const dueISO = due.toISOString().slice(0,10);
+
+      const wo = {
+        id: document.getElementById("woIdField").value,
+        road: document.getElementById("roadName").value.trim(),
+        issueType: document.getElementById("issueType").value,
+        priority: pr,
+        source: source,
+        contractor: "",
+        cost: est,
+        startDate: start,
+        dueDate: dueISO,
+        status: "Created",
+        linkedId: document.getElementById("linkedId").value.trim(),
+        district: "Vijayawada",
+        createdAt: new Date().toISOString()
+      };
+      WORK_ORDERS.unshift(wo);
+
+      // Audit entry
+      AUDIT_LOGS[wo.id] = [
+        { ts: new Date().toLocaleString("en-IN").replaceAll("/", "-"), who: SESSION.officerName, action: "Created", detail: `Created work order. Source ${wo.source}, budget ₹ ${fmtINR(wo.cost)}.` }
+      ];
+
+      bootstrap.Modal.getInstance(document.getElementById("createModal")).hide();
+      toast("Work order created and audit logged.", "success");
+      renderKPIs();
+      renderTable();
+    });
+
+    /* =========================================================
+       CONTRACTOR FILTER POPULATE
+       ========================================================= */
+    function populateContractorFilter(){
+      const sel = document.getElementById("contractorFilter");
+      const names = [...new Set(WORK_ORDERS.map(w => w.contractor).filter(Boolean))].sort();
+      names.forEach(n => {
+        const opt = document.createElement("option");
+        opt.value = n;
+        opt.textContent = n;
+        sel.appendChild(opt);
+      });
+    }
+
+    /* =========================================================
+       CLOCK + HEADER FIELDS
+       ========================================================= */
+    function tick(){
+      const now = new Date();
+      document.getElementById("nowDate").textContent = now.toLocaleDateString("en-IN", { year:"numeric", month:"short", day:"2-digit" });
+      document.getElementById("nowTime").textContent = now.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:false }) + " IST";
+    }
+
+    /* =========================================================
+       TOAST (Minimal, professional)
+       ========================================================= */
+    function toast(msg, type){
+      const color = ({
+        primary: "text-bg-primary",
+        success: "text-bg-success",
+        warning: "text-bg-warning",
+        danger:  "text-bg-danger",
+        secondary: "text-bg-secondary"
+      }[type] || "text-bg-secondary");
+
+      const wrap = document.getElementById("toastWrap") || (() => {
+        const d = document.createElement("div");
+        d.id = "toastWrap";
+        d.className = "toast-container position-fixed bottom-0 end-0 p-3";
+        document.body.appendChild(d);
+        return d;
+      })();
+
+      const el = document.createElement("div");
+      el.className = `toast align-items-center ${color} border-0`;
+      el.role = "status";
+      el.ariaLive = "polite";
+      el.ariaAtomic = "true";
+      el.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body fw-semibold">${msg}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      wrap.appendChild(el);
+      const t = new bootstrap.Toast(el, { delay: 2800 });
+      t.show();
+      el.addEventListener("hidden.bs.toast", () => el.remove());
+    }
+
+    /* =========================================================
+       INIT
+       ========================================================= */
+    function init(){
+      document.getElementById("officerName").textContent = SESSION.officerName;
+      document.getElementById("jurisdiction").textContent = SESSION.jurisdiction;
+      document.getElementById("roleText").textContent = SESSION.role;
+
+      tick();
+      setInterval(tick, 1000);
+
+      // Date range defaults (optional)
+      document.getElementById("fromDate").value = "";
+      document.getElementById("toDate").value = "";
+
+      populateContractorFilter();
+      wireFilters();
+
+      renderKPIs();
+      renderTable();
+
+      // Select dropdown sync
+      document.getElementById("selectedWO").addEventListener("change", () => {
+        UI.selectedWO = document.getElementById("selectedWO").value;
+        renderTimeline(UI.selectedWO);
+        renderAudit(UI.selectedWO);
+        renderContractors(UI.selectedWO);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>

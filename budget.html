@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget & Finance | NRIP - National Road Intelligence Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --finance-bg: #0a0e1a;
+      --finance-surface: rgba(255,255,255,0.98);
+      --finance-border: rgba(59, 130, 246, 0.15);
+      --finance-text: #0f172a;
+      --finance-muted: #64748b;
+      
+      --primary-finance: #1e40af;
+      --success-finance: #15803d;
+      --warning-finance: #b45309;
+      --danger-finance: #b91c1c;
+      --info-finance: #0369a1;
+      
+      --shadow-audit: 0 12px 48px rgba(0,0,0,0.18);
+      --radius-audit: 14px;
+      --progress-height: 10px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: linear-gradient(135deg, var(--finance-bg) 0%, #1e293b 100%);
+      color: var(--finance-text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+    }
+
+    .finance-container {
+      max-width: 1700px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    /* HEADER - Sticky */
+    .finance-header {
+      background: var(--finance-surface);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--finance-border);
+      border-radius: var(--radius-audit);
+      padding: 1.75rem 2rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-audit);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .finance-title {
+      font-size: 2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary-finance), #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0 0 0.5rem 0;
+      letter-spacing: -0.02em;
+    }
+
+    .finance-subtitle {
+      color: var(--finance-muted);
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    /* KPI DASHBOARD */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.75rem;
+      margin-bottom: 3rem;
+    }
+
+    .kpi-card {
+      background: var(--finance-surface);
+      border: 1px solid var(--finance-border);
+      border-radius: var(--radius-audit);
+      padding: 2rem 1.75rem;
+      box-shadow: var(--shadow-audit);
+      height: 100%;
+      transition: transform 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary-finance), #60a5fa);
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .kpi-number {
+      font-size: 2.75rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 0.75rem;
+      color: var(--finance-text);
+    }
+
+    .kpi-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--finance-muted);
+      margin-bottom: 1rem;
+    }
+
+    .kpi-balance {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--success-finance);
+    }
+
+    .kpi-overrun { border-left: 6px solid var(--danger-finance) !important; }
+    .kpi-warning { border-left: 6px solid var(--warning-finance) !important; }
+
+    /* MAIN LAYOUT */
+    .main-finance-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    /* BUDGET BREAKDOWN TABLE */
+    .budget-table-container {
+      background: var(--finance-surface);
+      border: 1px solid var(--finance-border);
+      border-radius: var(--radius-audit);
+      box-shadow: var(--shadow-audit);
+      overflow: hidden;
+    }
+
+    .budget-header {
+      padding: 2rem 2.25rem;
+      border-bottom: 2px solid var(--finance-border);
+      background: linear-gradient(135deg, rgba(30,64,175,0.05), rgba(96,165,250,0.05));
+    }
+
+    .budget-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    /* NEW HIGHWAY BACKGROUND */
+    .highway-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: 
+       url("{{ url_for('static', filename='images/aerial-top-view-of-highway-junction-interchange-road-drone-view-of-the-elevated-road-traffic-junctions-and-green-garden-transport-trucks-and-cars-driving-on-highway-infrastructure-in-moder.jpg') }}") center/cover no-repeat,
+linear-gradient(135deg, rgba(30,60,114,0.85) 0%, rgba(42,82,152,0.9) 50%, rgba(15,52,96,0.95) 100%);
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      filter: brightness(1.05) contrast(1.1) saturate(1.15);
+      z-index: -2;
+    }
+
+    /* PROGRESS BARS */
+    .progress-finance {
+      height: var(--progress-height);
+      background: rgba(15,23,42,0.1);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(15,23,42,0.2);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success-finance), #22c55e);
+      border-radius: 999px;
+      transition: width 0.8s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .progress-bar.warning {
+      background: linear-gradient(90deg, var(--warning-finance), #f59e0b);
+    }
+
+    .progress-bar.danger {
+      background: linear-gradient(90deg, var(--danger-finance), #ef4444);
+    }
+
+    .progress-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 0.5rem;
+    }
+
+    /* STICKY TABLE HEADER */
+    .budget-table-scroll {
+      max-height: 550px;
+      overflow: auto;
+    }
+
+    .budget-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--primary-finance);
+      color: white;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      border: none;
+      padding: 1.5rem 1.25rem;
+      white-space: nowrap;
+    }
+
+    .budget-table tbody td {
+      padding: 1.5rem 1.25rem;
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+      vertical-align: middle;
+    }
+
+    .hierarchy-indicator {
+      color: var(--finance-muted);
+      font-size: 0.9rem;
+      padding-left: 2rem;
+    }
+
+    .hierarchy-national { padding-left: 0.5rem; font-weight: 800; color: var(--primary-finance); }
+    .hierarchy-state { padding-left: 1.5rem; }
+    .hierarchy-district { padding-left: 2.75rem; }
+    .hierarchy-project { padding-left: 4rem; font-weight: 600; }
+
+    /* RIGHT PANEL */
+    .finance-panel {
+      height: fit-content;
+      position: sticky;
+      top: 2.5rem;
+    }
+
+    .panel-section {
+      background: var(--finance-surface);
+      border: 1px solid var(--finance-border);
+      border-radius: var(--radius-audit);
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-audit);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 1.5rem 1.75rem;
+      background: linear-gradient(135deg, var(--primary-finance), #3b82f6);
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .panel-body {
+      padding: 1.75rem;
+    }
+
+    /* ALERTS */
+    .alert-finance {
+      border: none;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+
+    .alert-critical { background: rgba(185,28,28,0.12); color: var(--danger-finance); border-left: 5px solid var(--danger-finance); }
+    .alert-warning { background: rgba(180,83,9,0.12); color: var(--warning-finance); border-left: 5px solid var(--warning-finance); }
+
+    /* TRANSACTIONS */
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+    }
+
+    .transaction-amount {
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .main-finance-grid { grid-template-columns: 1fr; }
+      .finance-panel { position: static; }
+    }
+
+    @media (max-width: 768px) {
+      .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      .budget-toolbar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+  <div class="finance-container">
+    <!-- HEADER -->
+    <div class="finance-header">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+        <div>
+          <h1 class="finance-title mb-2">
+            <i class="fas fa-coins me-2"></i>
+            Budget & Financial Governance
+          </h1>
+          <p class="finance-subtitle mb-0">
+            FY 2025-26 | Vijayawada Urban Division | Real-time Allocation Tracking | CAG Audit Compliant
+          </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <div class="alert alert-info py-2 px-3 mb-0" style="font-size: 0.95rem; border-radius: 10px;">
+            <i class="fas fa-circle me-1 text-success"></i>
+            LIVE | <span id="liveClock">15:18</span> IST | Feb 02, 2026
+          </div>
+          <select class="form-select" style="min-width: 180px;">
+            <option>FY 2025-26 (Active)</option>
+            <option>FY 2024-25 (Closed)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI DASHBOARD -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-number">₹4.20 Cr</div>
+        <div class="kpi-label">Total Allocated</div>
+        <div class="kpi-balance">Ministry → State → District</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-number">₹2.84 Cr</div>
+        <div class="kpi-label">Utilized Budget</div>
+        <div class="kpi-balance">67.6% consumed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-number">₹1.36 Cr</div>
+        <div class="kpi-label">Available Balance</div>
+        <div class="kpi-balance">32.4% remaining</div>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <div class="kpi-number">3</div>
+        <div class="kpi-label">Pending Approvals</div>
+        <div class="text-warning fw-semibold">Requires Finance Officer review</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-number">89%</div>
+        <div class="kpi-label">FY Progress</div>
+        <div class="kpi-balance">5 months completed</div>
+      </div>
+      <div class="kpi-card kpi-overrun">
+        <div class="kpi-number">0</div>
+        <div class="kpi-label">Overruns Detected</div>
+        <div class="text-success fw-semibold">No violations</div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-finance-grid">
+      <!-- BUDGET BREAKDOWN -->
+      <div class="budget-table-container">
+        <div class="budget-header">
+          <h3 style="font-size: 1.4rem; font-weight: 800; margin: 0;">
+            Budget Allocation Breakdown
+          </h3>
+          <p class="text-muted mb-0 mt-2" style="font-size: 1rem;">
+            Ministry → State → District → Project Hierarchy | Auto-expand on click
+          </p>
+          
+          <div class="budget-toolbar">
+            <div class="d-flex gap-2 flex-wrap">
+              <input type="text" class="form-control" style="min-width: 320px;" 
+                     placeholder="Search allocations, projects, work orders...">
+              <select class="form-select" style="min-width: 200px;">
+                <option>All Categories</option>
+                <option>Pothole Repair</option>
+                <option>Resurfacing</option>
+                <option>Drainage</option>
+              </select>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-primary">
+                <i class="fas fa-expand-arrows-alt me-1"></i>Expand All
+              </button>
+              <button class="btn btn-outline-secondary">
+                <i class="fas fa-compress-arrows-alt me-1"></i>Collapse All
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="budget-table-scroll">
+          <table class="table budget-table mb-0">
+            <thead>
+              <tr>
+                <th>Hierarchy</th>
+                <th style="width: 140px;">Allocated</th>
+                <th style="width: 140px;">Utilized</th>
+                <th style="width: 140px;">Balance</th>
+                <th style="width: 120px;">% Used</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- NATIONAL LEVEL -->
+              <tr>
+                <td class="hierarchy-national fw-bold fs-5">
+                  <i class="fas fa-landmark me-2 text-primary"></i>
+                  Ministry of Road Transport (National)
+                </td>
+                <td class="fw-bold">₹25.00 Cr</td>
+                <td class="fw-bold">₹18.75 Cr</td>
+                <td class="fw-bold text-success">₹6.25 Cr</td>
+                <td>
+                  <div class="progress" style="height: 12px;">
+                    <div class="progress-bar" style="width: 75%"></div>
+                  </div>
+                  <div class="progress-label">75.0%</div>
+                </td>
+                <td><span class="badge bg-success">On Track</span></td>
+              </tr>
+
+              <!-- STATE LEVEL -->
+              <tr class="hierarchy-state">
+                <td>
+                  <i class="fas fa-map-marked-alt me-2"></i>
+                  Andhra Pradesh (State)
+                </td>
+                <td>₹8.50 Cr</td>
+                <td>₹6.25 Cr</td>
+                <td class="text-success">₹2.25 Cr</td>
+                <td>
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 73.5%"></div>
+                  </div>
+                  <div class="progress-label">73.5%</div>
+                </td>
+                <td><span class="badge bg-success">Stable</span></td>
+              </tr>
+
+              <!-- DISTRICT LEVEL -->
+              <tr class="hierarchy-district">
+                <td>
+                  <i class="fas fa-city me-2"></i>
+                  Vijayawada Urban Division
+                </td>
+                <td>₹4.20 Cr</td>
+                <td>₹2.84 Cr</td>
+                <td class="text-success">₹1.36 Cr</td>
+                <td>
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 67.6%"></div>
+                  </div>
+                  <div class="progress-label">67.6%</div>
+                </td>
+                <td><span class="badge bg-warning">Monitor</span></td>
+              </tr>
+
+              <!-- PROJECT WORK ORDERS -->
+              <tr class="hierarchy-project">
+                <td>
+                  <i class="fas fa-road me-2"></i>
+                  WO-AP-2026-00017 (NH-16 Pothole)
+                </td>
+                <td>₹9.50 L</td>
+                <td>₹6.65 L</td>
+                <td class="text-success">₹2.85 L</td>
+                <td>
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 70%"></div>
+                  </div>
+                  <div class="progress-label">70.0%</div>
+                </td>
+                <td><span class="badge bg-success">Active</span></td>
+              </tr>
+              
+              <tr class="hierarchy-project">
+                <td>
+                  <i class="fas fa-road me-2"></i>
+                  WO-AP-2026-00018 (Eluru Road)
+                </td>
+                <td>₹62.00 L</td>
+                <td>₹45.50 L</td>
+                <td class="text-warning">₹16.50 L</td>
+                <td>
+                  <div class="progress">
+                    <div class="progress-bar warning" style="width: 73.4%"></div>
+                  </div>
+                  <div class="progress-label">73.4%</div>
+                </td>
+                <td><span class="badge bg-warning">Review</span></td>
+              </tr>
+
+              <!-- MORE ROWS... -->
+              <tr class="hierarchy-district">
+                <td>Guntur Rural Division</td>
+                <td>₹2.80 Cr</td>
+                <td>₹1.92 Cr</td>
+                <td class="text-success">₹0.88 Cr</td>
+                <td>
+                  <div class="progress">
+                    <div class="progress-bar" style="width: 68.6%"></div>
+                  </div>
+                  <div class="progress-label">68.6%</div>
+                </td>
+                <td><span class="badge bg-success">Stable</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Alerts + Transactions + Analytics -->
+      <div class="finance-panel">
+        <!-- FINANCIAL ALERTS -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Financial Alerts & Controls
+          </div>
+          <div class="panel-body">
+            <div class="alert-finance alert-critical mb-3">
+              <i class="fas fa-times-circle me-2"></i>
+              <strong>CRITICAL:</strong> WO-AP-2026-00018 approaching 80% utilization
+            </div>
+            <div class="alert-finance alert-warning mb-3">
+              <i class="fas fa-exclamation-circle me-2"></i>
+              <strong>WARNING:</strong> 3 pending budget approvals > 48hrs
+            </div>
+            <div class="alert alert-success">
+              <i class="fas fa-check-circle me-2"></i>
+              <strong>OK:</strong> No budget overruns detected
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT TRANSACTIONS -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-receipt me-2"></i>
+            Recent Transactions (Last 7 Days)
+          </div>
+          <div class="panel-body">
+            <div class="transaction-item">
+              <div>
+                <div class="fw-bold">Material - Asphalt</div>
+                <small class="text-muted">WO-AP-2026-00017 | Sri Lakshmi Infra</small>
+              </div>
+              <div class="transaction-amount text-success">+₹2.15 L</div>
+            </div>
+            <div class="transaction-item">
+              <div>
+                <div class="fw-bold">Labor Charges</div>
+                <small class="text-muted">WO-AP-2026-00018 | VMC Roads</small>
+              </div>
+              <div class="transaction-amount text-success">+₹3.42 L</div>
+            </div>
+            <div class="transaction-item">
+              <div>
+                <div class="fw-bold">Machinery Hire</div>
+                <small class="text-muted">WO-AP-2026-00012 | Sri Lakshmi Infra</small>
+              </div>
+              <div class="transaction-amount text-success">+₹1.28 L</div>
+            </div>
+            <a href="#" class="text-primary small fw-semibold d-block mt-3">View All Transactions →</a>
+          </div>
+        </div>
+        
+        <!-- BUDGET FORECAST -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-chart-line me-2"></i>
+            Budget Forecast
+          </div>
+          <div class="panel-body text-center">
+            <div class="kpi-number mb-3">Apr 15, 2026</div>
+            <div class="text-muted mb-2">Predicted Exhaustion</div>
+            <div class="progress mb-3">
+              <div class="progress-bar bg-success" style="width: 89%"></div>
+            </div>
+            <div class="text-success fw-bold">Budget Sufficient</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT TRAIL (Footer Panel) -->
+    <div class="panel-section" style="max-width: 1200px; margin: 0 auto;">
+      <div class="panel-header">
+        <i class="fas fa-clipboard-list me-2"></i>
+        Financial Audit Trail (Immutable)
+      </div>
+      <div class="panel-body">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="text-center p-3 border rounded" style="background: rgba(248,250,252,0.5);">
+              <div class="fs-1 text-primary mb-2">✓</div>
+              <div class="fw-bold">Zero Overruns</div>
+              <small class="text-muted">No violations detected</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center p-3 border rounded" style="background: rgba(248,250,252,0.5);">
+              <div class="fs-1 text-success mb-2">✓</div>
+              <div class="fw-bold">100% Linked</div>
+              <small class="text-muted">All spends → Work Orders</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center p-3 border rounded" style="background: rgba(248,250,252,0.5);">
+              <div class="fs-1 text-info mb-2">📄</div>
+              <div class="fw-bold">256 Docs</div>
+              <small class="text-muted">Invoices uploaded & verified</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="text-center p-3 border rounded" style="background: rgba(248,250,252,0.5);">
+              <div class="fs-1 text-warning mb-2">🔒</div>
+              <div class="fw-bold">Audit Locked</div>
+              <small class="text-muted">Immutable since creation</small>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-light rounded" style="font-size: 0.9rem;">
+          <strong>Backend Integration:</strong> 
+          POST /budget/transactions | GET /audit-trail | 
+          All changes logged with officer ID, timestamp, geo-location
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="highway-bg"></div> 
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // LIVE CLOCK
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = 
+        now.toLocaleTimeString('en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: false 
+        });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // DUMMY DATA - Replace with API calls
+    const BUDGET_DATA = {
+      allocated: 42000000,
+      utilized: 28400000,
+      balance: 13600000,
+      progress: 67.6
+    };
+
+    // HIERARCHY EXPAND/COLLAPSE (Demo)
+    document.querySelectorAll('.hierarchy-national, .hierarchy-state').forEach(row => {
+      row.addEventListener('click', function() {
+        this.classList.toggle('bg-primary-subtle');
+        // In production: toggle child rows via API
+      });
+    });
+
+    // PROGRESS BAR ANIMATIONS
+    document.querySelectorAll('.progress-bar').forEach(bar => {
+      const width = bar.style.width;
+      bar.style.width = '0%';
+      setTimeout(() => {
+        bar.style.width = width;
+      }, 500);
+    });
+
+    // SEARCH FUNCTIONALITY (Demo)
+    document.querySelector('input[placeholder*="Search"]').addEventListener('input', function(e) {
+      const term = e.target.value.toLowerCase();
+      // Backend: POST /budget/search?query=term
+      console.log('Searching budgets:', term);
+    });
+
+    // ALERT DISMISSAL (Demo)
+    document.querySelectorAll('.alert-finance').forEach(alert => {
+      alert.addEventListener('click', function() {
+        this.style.display = 'none';
+        // Backend: POST /alerts/{id}/dismiss
+      });
+    });
+
+    // BUDGET KPI UPDATES (Real-time simulation)
+    setInterval(() => {
+      const utilizedEl = document.querySelector('.kpi-card:nth-child(2) .kpi-number');
+      if (utilizedEl) {
+        const current = parseFloat(utilizedEl.textContent.replace(/[₹,]/g, ''));
+        const variance = (Math.random() - 0.5) * 50000; // ±50k random
+        utilizedEl.textContent = '₹' + (current + variance).toLocaleString();
+      }
+    }, 15000); // Update every 15 seconds
+  </script>
+</body>
+</html>

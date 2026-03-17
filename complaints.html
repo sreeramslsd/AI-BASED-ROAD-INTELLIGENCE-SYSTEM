@@ -1,0 +1,1005 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Complaints | NRIP - National Road Intelligence Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+      :root {
+        --gov-bg: #0a0f1e;
+        --gov-surface: rgba(255,255,255,0.97);
+        --gov-border: rgba(30,64,175,0.2);
+        --gov-text: #111827;
+        --gov-muted: #6b7280;
+        
+        --primary-gov: #1e40af;
+        --success-gov: #166534;
+        --warning-gov: #92400e;
+        --danger-gov: #991b1b;
+        --info-gov: #0369a1;
+        
+        --shadow-audit: 0 12px 48px rgba(0,0,0,0.18);
+        --radius-gov: 14px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        background: linear-gradient(135deg, var(--gov-bg) 0%, #1a2332 100%);
+        color: var(--gov-text);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+      }
+
+      .citizen-container {
+        max-width: 1800px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+      }
+
+      /* HEADER */
+      .complaints-header {
+        background: var(--gov-surface);
+        backdrop-filter: blur(24px);
+        border: 1px solid var(--gov-border);
+        border-radius: var(--radius-gov);
+        padding: 2rem;
+        margin-bottom: 2.5rem;
+        box-shadow: var(--shadow-audit);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .complaints-title {
+        font-size: 2.25rem;
+        font-weight: 800;
+        color: var(--primary-gov);
+        margin: 0 0 1rem 0;
+      }
+
+
+      .highway-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        background: 
+          url("{{ url_for('static', filename='images/aerial-top-view-of-highway-junction-interchange-road-drone-view-of-the-elevated-road-traffic-junctions-and-green-garden-transport-trucks-and-cars-driving-on-highway-infrastructure-in-moder.jpg') }}") center/cover no-repeat,
+          linear-gradient(135deg, rgba(30,60,114,0.85) 0%, rgba(42,82,152,0.9) 50%, rgba(15,52,96,0.95) 100%);
+        background-size: cover !important;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        filter: brightness(1.05) contrast(1.1) saturate(1.15);
+        z-index: -2;
+      }
+
+      .filters-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr 2fr;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      /* KPI CARDS */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.75rem;
+        margin-bottom: 3rem;
+      }
+   /* NEW HIGHWAY BACKGROUND */
+    .highway-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: 
+        url("{{ url_for('static', filename='images/aerial-top-view-of-highway-junction-interchange-road-drone-view-of-the-elevated-road-traffic-junctions-and-green-garden-transport-trucks-and-cars-driving-on-highway-infrastructure-in-moder.jpg') }}") center/cover no-repeat,
+        linear-gradient(135deg, rgba(30,60,114,0.85) 0%, rgba(42,82,152,0.9) 50%, rgba(15,52,96,0.95) 100%);
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      filter: brightness(1.05) contrast(1.1) saturate(1.15);
+      z-index: -2;
+    }
+     
+
+      .kpi-card {
+        background: var(--gov-surface);
+        border: 1px solid var(--gov-border);
+        border-radius: var(--radius-gov);
+        padding: 2rem 1.5rem;
+        box-shadow: var(--shadow-audit);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .kpi-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+      }
+
+      .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(90deg, var(--primary-gov), #60a5fa);
+      }
+
+      .kpi-number {
+        font-size: 3rem;
+        font-weight: 900;
+        line-height: 1;
+        margin-bottom: 0.75rem;
+      }
+
+      .kpi-label {
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--gov-muted);
+        margin: 0;
+      }
+
+      .kpi-overdue { border-left: 6px solid var(--danger-gov); }
+      .kpi-inprogress { border-left: 6px solid var(--warning-gov); }
+
+      /* MAIN TABLE */
+      .complaints-table-container {
+        background: var(--gov-surface);
+        border: 1px solid var(--gov-border);
+        border-radius: var(--radius-gov);
+        box-shadow: var(--shadow-audit);
+        overflow: hidden;
+        margin-bottom: 2rem;
+      }
+
+      .table-header {
+        padding: 2rem 2.25rem;
+        border-bottom: 2px solid var(--gov-border);
+      }
+
+      .table-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+
+      /* STICKY TABLE */
+      .complaints-scroll {
+        max-height: 650px;
+        overflow: auto;
+      }
+
+      .complaints-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: var(--primary-gov);
+        color: white;
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.05em;
+        border: none;
+        padding: 1.5rem 1.25rem;
+      }
+
+      .complaints-table tbody td {
+        padding: 1.5rem 1.25rem;
+        border-bottom: 1px solid rgba(15,23,42,0.08);
+        vertical-align: middle;
+      }
+
+      .complaints-table tbody tr:hover {
+        background: rgba(30,64,175,0.08);
+      }
+
+      /* STATUS BADGES */
+      .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .status-registered { background: rgba(59,130,246,0.15); color: var(--primary-gov); }
+      .status-verified { background: rgba(16,185,129,0.15); color: var(--success-gov); }
+      .status-assigned { background: rgba(245,158,11,0.15); color: var(--warning-gov); }
+      .status-overdue { background: rgba(239,68,68,0.15); color: var(--danger-gov); }
+
+      /* SLA TIMER */
+      .sla-timer {
+        font-size: 0.9rem;
+        font-weight: 700;
+        padding: 0.375rem 0.75rem;
+        border-radius: 12px;
+        display: inline-block;
+      }
+
+      .sla-ontime { background: rgba(16,185,129,0.2); color: var(--success-gov); }
+      .sla-warning { background: rgba(245,158,11,0.2); color: var(--warning-gov); }
+      .sla-breached { background: rgba(239,68,68,0.2); color: var(--danger-gov); }
+
+      /* DETAIL MODAL */
+      .complaint-detail {
+        background: var(--gov-surface);
+        border-radius: var(--radius-gov);
+        box-shadow: var(--shadow-audit);
+      }
+
+      .evidence-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .evidence-item {
+        position: relative;
+        height: 180px;
+        background: #f8fafc;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid rgba(15,23,42,0.1);
+      }
+
+      .evidence-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .ai-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(30,64,175,0.9);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      /* MAP */
+      .map-container {
+        height: 300px;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 2px solid rgba(15,23,42,0.1);
+        margin-bottom: 2rem;
+      }
+
+      /* WORKFLOW */
+      .workflow-step {
+        position: relative;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+        border-left: 4px solid var(--primary-gov);
+        background: rgba(248,250,252,0.6);
+      }
+
+      .workflow-step.current {
+        background: rgba(16,185,129,0.15);
+        border-left-color: var(--success-gov);
+        box-shadow: 0 0 0 3px rgba(16,185,129,0.3);
+      }
+
+      .workflow-step.completed {
+        background: rgba(248,250,252,0.8);
+        border-left-color: var(--success-gov);
+      }
+
+      /* Responsive */
+      @media (max-width: 1200px) {
+        .filters-row { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="citizen-container">
+      <!-- HEADER -->
+      <div class="complaints-header">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-4">
+          <div>
+            <h1 class="complaints-title mb-2">
+              <i class="fas fa-comments me-2"></i>
+              Citizen Complaints Dashboard
+            </h1>
+            <p class="fs-5 text-muted mb-0">
+              National Road Grievance Redressal System | RTI & CAG Audit Compliant
+            </p>
+          </div>
+          
+          <div class="filters-row">
+            <select class="form-select">
+              <option>All States</option>
+              <option selected>Andhra Pradesh</option>
+              <option>Tamil Nadu</option>
+              <option>Karnataka</option>
+            </select>
+            <select class="form-select">
+              <option selected>Vijayawada Urban</option>
+              <option>Guntur</option>
+              <option>Eluru</option>
+              <option>Tenali</option>
+            </select>
+            <select class="form-select">
+              <option>All Wards</option>
+              <option>Benz Circle (Ward 1)</option>
+              <option>Pattabhipuram (Ward 12)</option>
+              <option>Singh Nagar (Ward 25)</option>
+            </select>
+            <select class="form-select">
+              <option>All Status</option>
+              <option>Registered</option>
+              <option>Verified</option>
+              <option>Assigned</option>
+              <option>In Progress</option>
+            </select>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search by ID, Road, Mobile...">
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card" data-filter="all">
+          <div class="kpi-number">1,247</div>
+          <div class="kpi-label">Total Complaints</div>
+        </div>
+        <div class="kpi-card" data-filter="new">
+          <div class="kpi-number">47</div>
+          <div class="kpi-label">New Today</div>
+        </div>
+        <div class="kpi-card kpi-inprogress" data-filter="inprogress">
+          <div class="kpi-number">189</div>
+          <div class="kpi-label">In Progress</div>
+        </div>
+        <div class="kpi-card" data-filter="resolved">
+          <div class="kpi-number">892</div>
+          <div class="kpi-label">Resolved</div>
+        </div>
+        <div class="kpi-card kpi-overdue" data-filter="overdue">
+          <div class="kpi-number">23</div>
+          <div class="kpi-label">SLA Breached ⚠️</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-number">94%</div>
+          <div class="kpi-label">Avg Resolution</div>
+        </div>
+      </div>
+
+      <!-- COMPLAINTS TABLE -->
+      <div class="complaints-table-container">
+        <div class="table-header">
+          <h3 style="font-size: 1.5rem; font-weight: 800; margin: 0;">
+            Active Complaints List
+          </h3>
+          <p class="text-muted mb-0 mt-2">
+            Click row to view details | SLA timers running | Auto-escalation active
+          </p>
+          
+          <div class="table-toolbar">
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-primary">
+                <i class="fas fa-filter me-1"></i>Advanced Filters
+              </button>
+              <button class="btn btn-outline-success">
+                <i class="fas fa-bulk me-1"></i>Bulk Actions
+              </button>
+            </div>
+            <div class="d-flex gap-2">
+              <span class="badge bg-secondary fs-6" id="pageInfo">Page 1 of 63</span>
+              <button class="btn btn-outline-secondary btn-sm" onclick="changePage(-1)">← Prev</button>
+              <button class="btn btn-primary btn-sm" onclick="changePage(1)">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="complaints-scroll">
+          <table class="table complaints-table mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Date & Time</th>
+                <th>Citizen</th>
+                <th>Category</th>
+                <th>Road + Location</th>
+                <th>Coordinates</th>
+                <th>Severity</th>
+                <th>AI Score</th>
+                <th>Engineer</th>
+                <th>Status</th>
+                <th>SLA</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="complaintsTable">
+              <!-- POPULATED BY JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPLAINT DETAIL MODAL -->
+    <div class="modal fade" id="complaintModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content complaint-detail">
+          <div class="modal-header border-0 pb-0">
+            <h4 class="modal-title fw-bold" id="modalTitle">
+              <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+              Complaint Details
+            </h4>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+
+          <div class="modal-body p-4">
+            <!-- CITIZEN EVIDENCE -->
+            <div class="mb-4">
+              <h5 class="fw-bold mb-3">
+                <i class="fas fa-camera me-2"></i>Citizen Evidence
+              </h5>
+              <div class="evidence-grid" id="evidenceGrid">
+                <!-- POPULATED BY JS -->
+              </div>
+            </div>
+             <!-- NEW HIGHWAY BACKGROUND -->
+    <div class="highway-bg"></div>
+            <!-- MAP -->
+            <div id="complaintMap" class="map-container"></div>
+
+            <!-- DESCRIPTION -->
+            <div class="row g-4 mb-4">
+              <div class="col-md-8">
+                <h5 class="fw-bold mb-3">Description</h5>
+                <div class="p-3 border rounded" id="complaintDescription" style="background: rgba(248,250,252,0.6);">
+                  <!-- POPULATED BY JS -->
+                </div>
+              </div>
+              <div class="col-md-4">
+                <h5 class="fw-bold mb-3">Metadata</h5>
+                <div class="p-3 border rounded" id="complaintMetadata" style="background: rgba(248,250,252,0.6);">
+                  <!-- POPULATED BY JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- AI ANALYSIS -->
+            <div class="row g-4 mb-4">
+              <div class="col-md-6">
+                <h5 class="fw-bold mb-3">
+                  <i class="fas fa-brain me-2 text-primary"></i>AI Severity Engine
+                </h5>
+                <div class="p-4 border rounded" id="aiAnalysis" style="background: linear-gradient(135deg, rgba(30,64,175,0.05), rgba(96,165,250,0.05));">
+                  <!-- POPULATED BY JS -->
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h5 class="fw-bold mb-3">Assignment</h5>
+                <select class="form-select mb-3" id="assignSelect">
+                  <!-- POPULATED BY JS -->
+                </select>
+                <button class="btn btn-primary w-100 mb-3" onclick="assignEngineer()">
+                  Assign Engineer
+                </button>
+              </div>
+            </div>
+
+            <!-- WORKFLOW -->
+            <h5 class="fw-bold mb-4">Status Workflow</h5>
+            <div class="row g-3" id="workflowSteps">
+              <!-- POPULATED BY JS -->
+            </div>
+          </div>
+
+          <div class="modal-footer border-0 bg-light">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-success" onclick="markVerified()">
+              <i class="fas fa-check me-2"></i>Mark Verified
+            </button>
+            <button type="button" class="btn btn-primary" onclick="assignAndNotify()">
+              <i class="fas fa-forward me-2"></i>Assign & Notify
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <div class = "highway-bg"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      // LIVE CLOCK
+      function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false });
+        // Update any clock elements if needed
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // EXTENDED DUMMY DATA - 15 COMPLAINTS
+      const complaints = [
+        {
+          id: "CMP-AP-2026-001247",
+          datetime: "2026-02-02 14:32",
+          citizen: "Rajesh Kumar",
+          citizenType: "Public",
+          category: "Pothole",
+          location: "NH-16 Benz Circle-MG Road",
+          chainage: "KM 12.4",
+          coords: [16.5062, 80.6480],
+          severity: "Critical",
+          aiScore: 92,
+          engineer: "",
+          status: "Verified",
+          sla: "14h 32m",
+          slaStatus: "ontime",
+          description: "Deep pothole on Benz Circle - MG Road junction. Very dangerous during night time. Already 2 bikes slipped here. Please fix urgently.",
+          keywords: "deep pothole, night danger, bike accidents, urgent",
+          images: [
+            "https://images.unsplash.com/photo-1588137882463-43a1d8b6fcde?w=400&h=300&fit=crop",
+            "https://images.unsplash.com/photo-1600439515648-3e914a2c671e?w=400&h=300&fit=crop"
+          ],
+          aiFactors: [
+            { label: "Road Type (NH-16)", value: "×2.5" },
+            { label: "Traffic Density", value: "High" },
+            { label: "Accident History", value: "3 (12m)" },
+            { label: "School Proximity", value: "200m" }
+          ],
+          engineers: ["JE - Ram Kumar (Zone-1)", "AE - Suresh Babu (Vijayawada Urban)", "Contractor - Sri Lakshmi Infra"],
+          workflow: [
+            { step: "Registered", status: "completed", date: "Feb 02" },
+            { step: "Verified (AI)", status: "current", sla: "14h left" },
+            { step: "Assigned", status: "pending" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001246",
+          datetime: "2026-02-02 11:15",
+          citizen: "Police Patrol 247",
+          citizenType: "Police",
+          category: "Crack",
+          location: "Eluru Road KM 5.2",
+          chainage: "KM 5.2",
+          coords: [16.4987, 80.6423],
+          severity: "High",
+          aiScore: 87,
+          engineer: "JE Ram Kumar",
+          status: "Assigned",
+          sla: "28h 45m",
+          slaStatus: "warning",
+          description: "Major longitudinal crack across both lanes. Heavy vehicle movement causing further damage.",
+          keywords: "longitudinal crack, heavy vehicles, lane damage",
+          images: ["https://images.unsplash.com/photo-1558618047-3c8c76ba6dd4?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "Road Type (SH)", value: "×1.8" },
+            { label: "Traffic Density", value: "Medium" },
+            { label: "Load Impact", value: "High" }
+          ],
+          engineers: ["JE Ram Kumar (Zone-1)", "AE - Suresh Babu (Vijayawada Urban)"],
+          workflow: [
+            { step: "Registered", status: "completed", date: "Feb 02" },
+            { step: "Verified", status: "completed", date: "Feb 02" },
+            { step: "Assigned", status: "current", sla: "28h left" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001245",
+          datetime: "2026-02-01 19:42",
+          citizen: "Anita Sharma",
+          citizenType: "Public",
+          category: "Flooding",
+          location: "Pattabhipuram Drain",
+          chainage: "N/A",
+          coords: [16.5121, 80.6554],
+          severity: "Medium",
+          aiScore: 76,
+          engineer: "",
+          status: "Registered",
+          sla: "Breached (2d)",
+          slaStatus: "breached",
+          description: "Drainage blocked causing waterlogging during rains. Road becomes slippery and dangerous.",
+          keywords: "drainage block, waterlogging, monsoon, slippery",
+          images: ["https://images.unsplash.com/photo-1574336750391-8d9bbea8c1cc?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "Monsoon Season", value: "×2.0" },
+            { label: "Drainage Type", value: "Urban" },
+            { label: "Recurrence", value: "Monthly" }
+          ],
+          engineers: ["JE - Ravi Reddy (Zone-2)", "AE - Priya Singh"],
+          workflow: [
+            { step: "Registered", status: "current", sla: "Breached" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001244",
+          datetime: "2026-02-02 09:30",
+          citizen: "Vijay School Admin",
+          citizenType: "Govt Staff",
+          category: "Missing Markings",
+          location: "School Zone - MG Road",
+          chainage: "KM 3.8",
+          coords: [16.5021, 80.6456],
+          severity: "Critical",
+          aiScore: 95,
+          engineer: "",
+          status: "Verified",
+          sla: "8h 15m",
+          slaStatus: "ontime",
+          description: "School zone markings completely faded. Zebra crossing missing. Children crossing dangerously.",
+          keywords: "school zone, zebra crossing, children safety",
+          images: ["https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "School Proximity", value: "×3.0" },
+            { label: "Pedestrian Risk", value: "Critical" },
+            { label: "Marking Condition", value: "0%" }
+          ],
+          engineers: ["JE - Ram Kumar (Zone-1)", "AE - Suresh Babu"],
+          workflow: [
+            { step: "Registered", status: "completed", date: "Feb 02" },
+            { step: "Verified (AI)", status: "current", sla: "8h left" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001243",
+          datetime: "2026-02-02 07:45",
+          citizen: "Mohan Das",
+          citizenType: "Public",
+          category: "Pothole",
+          location: "Gandhi Nagar Main Road",
+          chainage: "500m",
+          coords: [16.5098, 80.6521],
+          severity: "High",
+          aiScore: 84,
+          engineer: "Contractor - VMC Roads",
+          status: "In Progress",
+          sla: "16h 22m",
+          slaStatus: "warning",
+          description: "Multiple potholes in residential area. School bus route. Seniors facing difficulty.",
+          keywords: "multiple potholes, school bus, residential, seniors",
+          images: ["https://images.unsplash.com/photo-1560185893-a55f7b2b212e?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "Residential Area", value: "×1.5" },
+            { label: "Bus Route", value: "High" },
+            { label: "Vulnerable Users", value: "Seniors" }
+          ],
+          engineers: ["Contractor - VMC Roads", "JE - Ravi Reddy"],
+          workflow: [
+            { step: "Registered", status: "completed", date: "Feb 02" },
+            { step: "Verified", status: "completed", date: "Feb 02" },
+            { step: "Assigned", status: "completed", date: "Feb 02" },
+            { step: "In Progress", status: "current", sla: "16h left" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001242",
+          datetime: "2026-01-31 16:20",
+          citizen: "Traffic Police HQ",
+          citizenType: "Police",
+          category: "Damaged Divider",
+          location: "NH-16 One Town Junction",
+          chainage: "KM 10.2",
+          coords: [16.5045, 80.6467],
+          severity: "Critical",
+          aiScore: 91,
+          engineer: "",
+          status: "Verified",
+          sla: "Breached (1d)",
+          slaStatus: "breached",
+          description: "Concrete divider completely broken. Vehicles crossing recklessly causing accidents.",
+          keywords: "broken divider, traffic chaos, accidents",
+          images: ["https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "NH Priority", value: "×2.8" },
+            { label: "Accident Risk", value: "Critical" },
+            { label: "Traffic Volume", value: "Peak Hours" }
+          ],
+          engineers: ["AE - Suresh Babu", "Contractor - Sri Lakshmi Infra"],
+          workflow: [
+            { step: "Registered", status: "completed", date: "Jan 31" },
+            { step: "Verified", status: "current", sla: "Breached" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001241",
+          datetime: "2026-02-02 13:10",
+          citizen: "Lakshmi Hospital",
+          citizenType: "Govt Staff",
+          category: "Unsafe Curve",
+          location: "Benz Circle Flyover Approach",
+          chainage: "KM 1.2",
+          coords: [16.5078, 80.6492],
+          severity: "High",
+          aiScore: 88,
+          engineer: "",
+          status: "Registered",
+          sla: "22h 41m",
+          slaStatus: "ontime",
+          description: "Curve markings missing + poor lighting. Ambulance delay reported yesterday.",
+          keywords: "curve markings, poor lighting, ambulance delay",
+          images: ["https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "Emergency Route", value: "×2.2" },
+            { label: "Night Visibility", value: "Poor" },
+            { label: "Curve Radius", value: "Tight" }
+          ],
+          engineers: ["JE - Ram Kumar", "AE - Priya Singh"],
+          workflow: [
+            { step: "Registered", status: "current", sla: "22h left" }
+          ]
+        },
+        {
+          id: "CMP-AP-2026-001240",
+          datetime: "2026-02-02 10:25",
+          citizen: "Auto Union 456",
+          citizenType: "Public",
+          category: "Illegal Encroachment",
+          location: "Pattabhipuram Market Road",
+          chainage: "200m",
+          coords: [16.5112, 80.6543],
+          severity: "Medium",
+          aiScore: 72,
+          engineer: "JE Ravi Reddy",
+          status: "Assigned",
+          sla: "35h 12m",
+          slaStatus: "ontime",
+          description: "Vendors blocking footpath and half road. Autos cannot pass properly.",
+          keywords: "illegal vendors, footpath block, auto traffic",
+          images: ["https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=400&h=300&fit=crop"],
+          aiFactors: [
+            { label: "Public Transport", value: "×1.3" },
+            { label: "Pedestrian Impact", value: "Medium" },
+            { label: "Jurisdiction", value: "Municipal" }
+          ],
+          engineers: ["JE Ravi Reddy", "Municipal Team"],
+          workflow: [
+            { step: "Registered", status: "completed", date: "Feb 02" },
+            { step: "Verified", status: "completed", date: "Feb 02" },
+            { step: "Assigned", status: "current", sla: "35h left" }
+          ]
+        }
+      ];
+
+      let currentComplaint = null;
+      let currentPage = 1;
+      const itemsPerPage = 7;
+
+      // RENDER TABLE
+      function renderComplaints(filteredComplaints = complaints) {
+        const tbody = document.getElementById('complaintsTable');
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const pageComplaints = filteredComplaints.slice(start, end);
+        
+        tbody.innerHTML = '';
+
+        pageComplaints.forEach(c => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td><strong>${c.id}</strong></td>
+            <td>${c.datetime}</td>
+            <td>
+              <div>${c.citizen}</div>
+              <small class="text-muted">${c.citizenType}</small>
+            </td>
+            <td>
+              <span class="badge bg-primary">${c.category}</span>
+            </td>
+            <td>${c.location}<br><small class="text-muted">${c.chainage}</small></td>
+            <td>
+              <small class="text-muted">${c.coords[0].toFixed(4)}°N, ${c.coords[1].toFixed(4)}°E</small>
+            </td>
+            <td>
+              <span class="badge ${c.severity === 'Critical' ? 'bg-danger' : c.severity === 'High' ? 'bg-warning' : 'bg-info'}">${c.severity}</span>
+            </td>
+            <td>
+              <div class="fw-bold text-primary">${c.aiScore}</div>
+              <small>/100</small>
+            </td>
+            <td>${c.engineer || '<span class="text-muted">Pending</span>'}</td>
+            <td><span class="status-badge status-${c.status.toLowerCase().replace(' ', '-')}">${c.status}</span></td>
+            <td><span class="sla-timer sla-${c.slaStatus}">${c.sla}</span></td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="openComplaint('${c.id}')">
+                <i class="fas fa-eye"></i> View
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        updatePagination(filteredComplaints.length);
+      }
+   
+      // UPDATE PAGINATION
+      function updatePagination(totalItems) {
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+        document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+      }
+
+      // PAGE NAVIGATION
+      function changePage(direction) {
+        const totalPages = Math.ceil(complaints.length / itemsPerPage);
+        currentPage += direction;
+        currentPage = Math.max(1, Math.min(currentPage, totalPages));
+        renderComplaints();
+      }
+
+      // SEARCH FUNCTIONALITY
+      document.getElementById('searchInput').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        const filtered = complaints.filter(c => 
+          c.id.toLowerCase().includes(term) ||
+          c.citizen.toLowerCase().includes(term) ||
+          c.location.toLowerCase().includes(term) ||
+          c.category.toLowerCase().includes(term)
+        );
+        currentPage = 1;
+        renderComplaints(filtered);
+      });
+
+      // OPEN COMPLAINT MODAL
+      function openComplaint(id) {
+        currentComplaint = complaints.find(c => c.id === id);
+        if (currentComplaint) {
+          document.getElementById('modalTitle').textContent = `${currentComplaint.id} - ${currentComplaint.category}`;
+          
+          // Evidence
+          const evidenceGrid = document.getElementById('evidenceGrid');
+          evidenceGrid.innerHTML = currentComplaint.images.map(img => 
+            `<div class="evidence-item">
+              <img src="${img}" alt="${currentComplaint.category}">
+              <div class="ai-badge">AI: Valid</div>
+            </div>`
+          ).join('');
+
+          // Description
+          document.getElementById('complaintDescription').innerHTML = `
+            <p>"${currentComplaint.description}"</p>
+            <div class="mt-3 p-2 bg-light rounded small">
+              <strong>AI Keywords:</strong> ${currentComplaint.keywords}
+            </div>
+          `;
+
+          // Metadata
+          document.getElementById('complaintMetadata').innerHTML = `
+            <div><strong>ID:</strong> ${currentComplaint.id}</div>
+            <div><strong>Submitted:</strong> ${currentComplaint.datetime} IST</div>
+            <div><strong>Citizen:</strong> ${currentComplaint.citizen} (${currentComplaint.citizenType})</div>
+            <div><strong>GPS:</strong> ${currentComplaint.coords[0]}°N, ${currentComplaint.coords[1]}°E</div>
+          `;
+
+          // AI Analysis
+          document.getElementById('aiAnalysis').innerHTML = `
+            ${currentComplaint.aiFactors.map(f => 
+              `<div class="d-flex justify-content-between mb-2">
+                <span>${f.label}</span>
+                <span class="fw-bold">${f.value}</span>
+              </div>`
+            ).join('')}
+            <div class="text-center p-3 bg-primary text-white rounded fw-bold fs-5 mb-2">
+              FINAL PRIORITY: <span class="text-warning">${currentComplaint.severity}</span>
+            </div>
+            <div class="text-center">
+              <span class="badge bg-success fs-6">SLA: ${currentComplaint.sla}</span>
+            </div>
+          `;
+
+          // Assignment
+          document.getElementById('assignSelect').innerHTML = currentComplaint.engineers.map(e => 
+            `<option ${currentComplaint.engineer === e ? 'selected' : ''}>${e}</option>`
+          ).join('');
+
+          // Workflow
+          document.getElementById('workflowSteps').innerHTML = currentComplaint.workflow.map((step, index) => 
+            `<div class="col-md-4">
+              <div class="workflow-step ${step.status}">
+                <div class="d-flex justify-content-between">
+                  <span><i class="fas fa-${step.status === 'completed' ? 'check-circle text-success' : step.status === 'current' ? 'brain text-primary' : 'user-tie'} me-2"></i>${step.step}</span>
+                  <span class="badge ${step.status === 'completed' ? 'bg-success' : step.status === 'current' ? 'bg-primary' : 'bg-secondary'}">${step.date || step.sla || 'Pending'}</span>
+                </div>
+              </div>
+            </div>`
+          ).join('');
+
+          const modal = new bootstrap.Modal(document.getElementById('complaintModal'));
+          modal.show();
+          
+          // Update map
+          setTimeout(() => {
+            const mapContainer = document.getElementById('complaintMap');
+            mapContainer.innerHTML = '';
+            const map = L.map('complaintMap').setView(currentComplaint.coords, 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            L.marker(currentComplaint.coords).addTo(map)
+              .bindPopup(`Complaint Location<br>${currentComplaint.location}`)
+              .openPopup();
+          }, 300);
+        }
+      }
+
+      // ACTION FUNCTIONS
+      function markVerified() {
+        if (currentComplaint) {
+          currentComplaint.status = 'Verified';
+          currentComplaint.workflow[1].status = 'completed';
+          renderComplaints();
+          bootstrap.Modal.getInstance(document.getElementById('complaintModal')).hide();
+          alert('Complaint marked as Verified ✅');
+        }
+      }
+
+      function assignEngineer() {
+        if (currentComplaint) {
+          const selectedEngineer = document.getElementById('assignSelect').value;
+          currentComplaint.engineer = selectedEngineer;
+          currentComplaint.status = 'Assigned';
+          renderComplaints();
+          bootstrap.Modal.getInstance(document.getElementById('complaintModal')).hide();
+          alert(`Assigned to: ${selectedEngineer} ✅`);
+        }
+      }
+
+      function assignAndNotify() {
+        assignEngineer();
+        alert('Engineer assigned & SMS notification sent to citizen 📱');
+      }
+
+      // KPI CLICK FILTERS
+      document.querySelectorAll('.kpi-card').forEach(card => {
+        card.addEventListener('click', function() {
+          const filter = this.dataset.filter;
+          document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('border-primary', 'border-4'));
+          this.classList.add('border-primary', 'border-4');
+          
+          let filtered = complaints;
+          switch(filter) {
+            case 'new':
+              filtered = complaints.filter(c => c.datetime.includes('2026-02-02'));
+              break;
+            case 'inprogress':
+              filtered = complaints.filter(c => c.status === 'In Progress' || c.status === 'Assigned');
+              break;
+            case 'resolved':
+              filtered = complaints.filter(c => c.status === 'Resolved');
+              break;
+            case 'overdue':
+              filtered = complaints.filter(c => c.slaStatus === 'breached');
+              break;
+          }
+          currentPage = 1;
+          renderComplaints(filtered);
+        });
+      });
+
+      // INIT
+      document.addEventListener('DOMContentLoaded', function() {
+        renderComplaints();
+      });
+    </script>
+  </body>
+  </html>

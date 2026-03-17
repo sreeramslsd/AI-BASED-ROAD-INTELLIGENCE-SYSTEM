@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contractors | NRIP - National Road Intelligence Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --gov-bg: #0a0f1e;
+      --gov-surface: rgba(255,255,255,0.97);
+      --gov-border: rgba(55,65,81,0.2);
+      --gov-text: #111827;
+      --gov-muted: #6b7280;
+      
+      --primary: #1e3a8a;
+      --success: #166534;
+      --warning: #92400e;
+      --danger: #991b1b;
+      --info: #0369a1;
+      
+      --shadow-gov: 0 10px 40px rgba(0,0,0,0.15);
+      --radius-gov: 12px;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--gov-bg) 0%, #1a2332 100%);
+      color: var(--gov-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+    }
+
+    .container-gov {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    /* Header */
+    .header-gov {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--gov-border);
+      border-radius: var(--radius-gov);
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-gov);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin: 0 0 0.25rem 0;
+      letter-spacing: -0.025em;
+    }
+
+    /* NEW HIGHWAY BACKGROUND */
+    .highway-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      background: 
+        url("{{ url_for('static', filename='images/aerial-top-view-of-highway-junction-interchange-road-drone-view-of-the-elevated-road-traffic-junctions-and-green-garden-transport-trucks-and-cars-driving-on-highway-infrastructure-in-moder.jpg') }}") center/cover no-repeat,
+        linear-gradient(135deg, rgba(30,60,114,0.85) 0%, rgba(42,82,152,0.9) 50%, rgba(15,52,96,0.95) 100%);
+      background-size: cover !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      filter: brightness(1.05) contrast(1.1) saturate(1.15);
+      z-index: -2;
+    }
+
+    .header-subtitle {
+      color: var(--gov-muted);
+      font-size: 1rem;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .kpi-card {
+      background: var(--gov-surface);
+      border: 1px solid var(--gov-border);
+      border-radius: var(--radius-gov);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-gov);
+      transition: var(--transition);
+      height: 100%;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    }
+
+    .kpi-number {
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .kpi-label {
+      font-size: 0.875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gov-muted);
+      margin: 0 0 0.75rem 0;
+    }
+
+    .kpi-trend {
+      font-size: 0.875rem;
+      margin: 0;
+    }
+
+    .kpi-critical { border-left: 5px solid var(--danger); }
+    .kpi-warning { border-left: 5px solid var(--warning); }
+    .kpi-success { border-left: 5px solid var(--success); }
+
+    /* Main Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Table Section */
+    .table-container {
+      background: var(--gov-surface);
+      border: 1px solid var(--gov-border);
+      border-radius: var(--radius-gov);
+      box-shadow: var(--shadow-gov);
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--gov-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .table-controls {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .table-search {
+      min-width: 300px;
+      max-width: 400px;
+    }
+
+    .table-filter {
+      min-width: 160px;
+    }
+
+    /* Sticky Table Header */
+    .table-scroll {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .contractors-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      border: none;
+      padding: 1.25rem 1rem;
+    }
+
+    .contractors-table tbody td {
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      vertical-align: middle;
+    }
+
+    .contractors-table tbody tr:hover {
+      background: rgba(30,58,138,0.05);
+    }
+
+    .status-badge {
+      padding: 0.375rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .status-active { background: rgba(22,101,52,0.15); color: var(--success); }
+    .status-warning { background: rgba(146,64,14,0.15); color: var(--warning); }
+    .status-blacklisted { background: rgba(153,27,27,0.15); color: var(--danger); }
+
+    /* Right Panel */
+    .profile-panel {
+      height: fit-content;
+      position: sticky;
+      top: 2rem;
+    }
+
+    .panel-section {
+      background: var(--gov-surface);
+      border: 1px solid var(--gov-border);
+      border-radius: var(--radius-gov);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-gov);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 1.25rem 1.5rem;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .panel-body {
+      padding: 1.5rem;
+    }
+
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: white;
+      margin: 0 auto 1rem;
+    }
+
+    .ai-score {
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: var(--radius-gov);
+      background: linear-gradient(135deg, rgba(30,58,138,0.1), rgba(59,130,246,0.1));
+      border: 2px solid rgba(30,58,138,0.2);
+      margin: 1rem 0;
+    }
+
+    .score-circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: conic-gradient(var(--success) 0deg 270deg, var(--warning) 270deg 330deg, var(--danger) 330deg 360deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      position: relative;
+    }
+
+    .score-circle::before {
+      content: '';
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: var(--gov-surface);
+      z-index: 1;
+    }
+
+    .score-number {
+      font-size: 1.75rem;
+      font-weight: 900;
+      color: var(--primary);
+      z-index: 2;
+      position: relative;
+    }
+
+    .risk-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .risk-item {
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .risk-high { background: rgba(153,27,27,0.1); color: var(--danger); border: 1px solid rgba(153,27,27,0.3); }
+    .risk-medium { background: rgba(146,64,14,0.1); color: var(--warning); border: 1px solid rgba(146,64,14,0.3); }
+    .risk-low { background: rgba(22,101,52,0.1); color: var(--success); border: 1px solid rgba(22,101,52,0.3); }
+
+    /* Project Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 0.75rem;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(30,58,138,0.3);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: rgba(255,255,255,0.5);
+      border-radius: 8px;
+      border-left: 3px solid var(--primary);
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -2.75rem;
+      top: 1.25rem;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .profile-panel {
+        position: static;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+      .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .table-search {
+        max-width: none;
+      }
+    }
+
+    .btn-gov {
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border: 2px solid;
+      transition: var(--transition);
+    }
+
+    .btn-gov:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    .btn-primary-gov { background: var(--primary); border-color: var(--primary); color: white; }
+    .btn-secondary-gov { background: transparent; border-color: var(--gov-muted); color: var(--gov-text); }
+  </style>
+</head>
+<body>
+  <div class="container-gov">
+    <!-- Header -->
+    <div class="header-gov">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+        <div>
+          <h1 class="header-title mb-1">
+            <i class="fas fa-hard-hat me-2"></i>
+            Contractor Intelligence
+          </h1>
+          <p class="header-subtitle mb-0">
+            National Contractor Management Platform • Transparent Performance Tracking • CAG Audit Compliant
+          </p>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <div class="alert alert-info py-2 px-3 mb-0" style="font-size: 0.875rem;">
+            <i class="fas fa-circle me-1 text-success"></i>
+            System: LIVE | Last Updated: <span id="liveClock">--:--</span>
+          </div>
+          <button class="btn btn-primary-gov btn-gov">
+            <i class="fas fa-plus me-2"></i>New Evaluation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Dashboard -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-critical">
+        <div class="kpi-number" data-kpi="totalActive">247</div>
+        <div class="kpi-label">Active Contractors</div>
+        <p class="kpi-trend text-danger">
+          <i class="fas fa-arrow-down me-1"></i>2% from last month
+        </p>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-number" data-kpi="assignedProjects">1,284</div>
+        <div class="kpi-label">Currently Assigned</div>
+        <p class="kpi-trend text-success">
+          <i class="fas fa-arrow-up me-1"></i>+8% MoM
+        </p>
+      </div>
+      <div class="kpi-card kpi-success">
+        <div class="kpi-number" data-kpi="onTimePct">89.4%</div>
+        <div class="kpi-label">On-Time Completion</div>
+        <p class="kpi-trend text-success">
+          <i class="fas fa-arrow-up me-1"></i>Above target
+        </p>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-number" data-kpi="avgQuality">4.32</div>
+        <div class="kpi-label">Avg Quality Score</div>
+        <p class="kpi-trend text-warning">
+          <i class="fas fa-minus me-1"></i>Stable
+        </p>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <div class="kpi-number" data-kpi="blacklisted">12</div>
+        <div class="kpi-label">Blacklisted / Review</div>
+        <p class="kpi-trend text-danger">
+          <i class="fas fa-arrow-up me-1"></i>+3 this month
+        </p>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-number" data-kpi="totalSpend">₹4.82 Cr</div>
+        <div class="kpi-label">Total Govt Spend</div>
+        <p class="kpi-trend text-success">
+          <i class="fas fa-arrow-up me-1"></i>Within budget
+        </p>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="main-grid">
+      <!-- Contractors Directory -->
+      <div class="table-container">
+        <div class="table-header">
+          <div>
+            <h3 class="mb-1" style="font-size: 1.25rem; font-weight: 700;">
+              Contractor Directory
+            </h3>
+            <small class="text-muted">
+              Showing <span id="tableCount">42</span> of <span id="totalCount">247</span> contractors
+            </small>
+          </div>
+          <div class="table-controls">
+            <input type="text" class="form-control table-search" id="searchInput" 
+                   placeholder="Search by name, ID, or PAN...">
+            <select class="form-select table-filter" id="stateFilter">
+              <option>All States</option>
+              <option>Andhra Pradesh</option>
+              <option>Telangana</option>
+              <option>Karnataka</option>
+            </select>
+            <select class="form-select table-filter" id="gradeFilter">
+              <option>All Grades</option>
+              <option>Class A</option>
+              <option>Class B</option>
+              <option>Class C</option>
+            </select>
+            <select class="form-select table-filter" id="riskFilter">
+              <option>All Risk Levels</option>
+              <option>Low Risk</option>
+              <option>Medium Risk</option>
+              <option>High Risk</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-scroll">
+          <table class="table contractors-table mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Firm Name</th>
+                <th>Grade</th>
+                <th>Specialization</th>
+                <th>Active</th>
+                <th>Completed</th>
+                <th>On-Time</th>
+                <th>Quality</th>
+                <th>Risk Score</th>
+                <th>Status</th>
+                <th>AI Score</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="contractorTableBody">
+              <!-- Dynamic content -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center px-4 py-3 bg-light border-top">
+          <div class="text-muted small">
+            Page <span id="currentPage">1</span> of <span id="totalPages">3</span>
+          </div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-outline-secondary btn-sm">Previous</button>
+            <button class="btn btn-primary btn-sm">Next</button>
+          </div>
+        </div>
+      </div>
+       <!-- NEW HIGHWAY BACKGROUND -->
+  <div class="highway-bg"></div>
+
+      <!-- Right Panel: Selected Contractor Profile -->
+      <div class="profile-panel">
+        <!-- Profile Header -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-user-tie me-2"></i>
+            Contractor Profile
+          </div>
+          <div class="panel-body text-center">
+            <div class="profile-avatar">
+              <i class="fas fa-building"></i>
+            </div>
+            <h4 id="profileName" class="mb-1">Sri Lakshmi Infra Works</h4>
+            <p id="profileId" class="text-muted mb-1">CTR-AP-001</p>
+            <span id="profileStatus" class="status-badge status-active">Active</span>
+          </div>
+        </div>
+
+        <!-- AI Score -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-brain me-2"></i>
+            AI Contractor Score
+          </div>
+          <div class="panel-body">
+            <div class="ai-score">
+              <div class="score-circle">
+                <div class="score-number" id="aiScoreNum">92</div>
+              </div>
+              <h5 class="mb-1 fw-bold">Excellent (92/100)</h5>
+              <p class="text-muted small mb-0">
+                High due to 92% on-time delivery, low rework (1.2%), strong budget discipline
+              </p>
+            </div>
+            <div class="d-grid gap-2">
+              <button class="btn btn-primary-gov btn-gov">
+                <i class="fas fa-check-double me-2"></i>
+                Assign to New WO (Recommended)
+              </button>
+              <button class="btn btn-secondary-gov btn-gov">
+                <i class="fas fa-flag me-2"></i>
+                Flag for Review
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Risk Indicators -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Risk & Compliance
+          </div>
+          <div class="panel-body">
+            <div class="risk-grid">
+              <div class="risk-item risk-low">
+                <div class="fs-5 fw-bold mb-1">✓</div>
+                <div>License Valid</div>
+                <div class="small text-success">Expires: Dec 2027</div>
+              </div>
+              <div class="risk-item risk-low">
+                <div class="fs-5 fw-bold mb-1">✓</div>
+                <div>Insurance Valid</div>
+                <div class="small text-success">₹5 Cr coverage</div>
+              </div>
+              <div class="risk-item risk-medium">
+                <div class="fs-5 fw-bold mb-1">⚠</div>
+                <div>Delay History</div>
+                <div class="small text-warning">2 projects (avg +4 days)</div>
+              </div>
+              <div class="risk-item risk-low">
+                <div class="fs-5 fw-bold mb-1">✓</div>
+                <div>No Complaints</div>
+                <div class="small text-success">0 active cases</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Projects -->
+        <div class="panel-section">
+          <div class="panel-header">
+            <i class="fas fa-road me-2"></i>
+            Recent Projects (6)
+          </div>
+          <div class="panel-body">
+            <div class="timeline">
+              <div class="timeline-item">
+                <div class="d-flex justify-content-between mb-1">
+                  <strong>NH-16 Pothole Repair</strong>
+                  <span class="badge bg-success">On Time</span>
+                </div>
+                <div class="small text-muted">Budget: ₹9.5L | Quality: 4.8/5 | Completed: Jan 2026</div>
+              </div>
+              <div class="timeline-item">
+                <div class="d-flex justify-content-between mb-1">
+                  <strong>Eluru Road Resurfacing</strong>
+                  <span class="badge bg-warning">Delayed</span>
+                </div>
+                <div class="small text-muted">Budget: ₹62L | Quality: 4.2/5 | Completed: Dec 2025</div>
+              </div>
+            </div>
+            <div class="text-center mt-3">
+              <a href="#" class="text-primary small fw-semibold">View All Projects →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Live clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('liveClock').textContent = 
+        now.toLocaleTimeString('en-IN', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Demo contractor data
+    const demoContractors = [
+      {
+        id: "CTR-AP-001",
+        name: "Sri Lakshmi Infra Works",
+        grade: "Class A",
+        specialization: "NH, Urban",
+        active: 8,
+        completed: 214,
+        onTime: "91%",
+        quality: "4.6",
+        risk: "Low",
+        status: "Active",
+        aiScore: 92
+      },
+      {
+        id: "CTR-AP-014",
+        name: "VMC Roads & Drainage Contractors",
+        grade: "Class B",
+        specialization: "Urban, Drainage",
+        active: 12,
+        completed: 152,
+        onTime: "86%",
+        quality: "4.2",
+        risk: "Medium",
+        status: "Warning",
+        aiScore: 78
+      },
+      {
+        id: "CTR-AP-027",
+        name: "Coastal Highway Maintenance Ltd",
+        grade: "Class A",
+        specialization: "NH, Rural",
+        active: 18,
+        completed: 98,
+        onTime: "78%",
+        quality: "3.8",
+        risk: "High",
+        status: "Blacklisted",
+        aiScore: 62
+      }
+      // ... more demo data
+    ];
+
+    // Table row click handler
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('tbody tr')) {
+        const row = e.target.closest('tbody tr');
+        const contractorId = row.dataset.contractorId;
+        const contractor = demoContractors.find(c => c.id === contractorId);
+        
+        if (contractor) {
+          updateProfile(contractor);
+          // Visual feedback
+          document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('table-active'));
+          row.classList.add('table-active');
+        }
+      }
+    });
+
+    function updateProfile(contractor) {
+      document.getElementById('profileName').textContent = contractor.name;
+      document.getElementById('profileId').textContent = contractor.id;
+      
+      const statusEl = document.getElementById('profileStatus');
+      statusEl.textContent = contractor.status;
+      statusEl.className = `status-badge status-${contractor.status.toLowerCase()}`;
+      
+      document.getElementById('aiScoreNum').textContent = contractor.aiScore;
+    }
+
+    // Initialize with first contractor
+    if (demoContractors.length > 0) {
+      updateProfile(demoContractors[0]);
+    }
+
+    // Search and filter (basic demo)
+    document.getElementById('searchInput').addEventListener('input', debounce(function() {
+      // Implement search logic
+    }, 300));
+
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+  </script>
+</body>
+</html>

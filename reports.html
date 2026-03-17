@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NRIEWS | National Road Audit Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --accent: #7000ff;
+            --success: #00ff88;
+            --warning: #ffb347;
+            --danger: #ff3b3b;
+            --bg: #050508;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            padding: 40px;
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER SECTION --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .gov-branding h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            letter-spacing: 3px;
+            color: var(--primary);
+        }
+
+        .gov-branding p {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #888;
+            letter-spacing: 1px;
+        }
+
+        .report-meta { text-align: right; font-size: 14px; }
+        .report-meta span { color: var(--primary); font-weight: 600; }
+
+        /* --- TOP ANALYTICS TILES --- */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .metric-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            transition: 0.3s;
+        }
+
+        .metric-card:hover { border-color: var(--primary); transform: translateY(-5px); }
+        .metric-card h3 { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+        .metric-card p { font-family: 'Orbitron', sans-serif; font-size: 28px; color: #fff; }
+        .metric-card small { color: var(--success); font-weight: 600; }
+
+        /* --- MAIN DATA TABLE --- */
+        .table-container {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 30px;
+            overflow: hidden;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .table-header h2 { font-family: 'Orbitron', sans-serif; font-size: 18px; color: var(--primary); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead th {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            color: #888;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        tbody td {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            font-size: 14px;
+        }
+
+        .status-pill {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .pill-critical { background: rgba(255, 59, 59, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .pill-warning { background: rgba(255, 179, 71, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+        .pill-success { background: rgba(0, 255, 136, 0.1); color: var(--success); border: 1px solid var(--success); }
+
+        /* --- CONTRACTOR BOARD --- */
+        .audit-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .contractor-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 20px;
+        }
+
+        .contractor-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* --- BUTTONS --- */
+        .btn-group { display: flex; gap: 15px; }
+        .export-btn {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .export-btn:hover { background: var(--primary); color: #000; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="gov-branding">
+            <h1>NRIEWS | AUDIT TERMINAL</h1>
+            <p>National Road Intelligence & Early-Warning System</p>
+        </div>
+        <div class="report-meta">
+            Sector: <span>VIJAYAWADA - ANDHRA PRADESH</span><br>
+            Inspection Date: <span>Feb 15, 2026</span><br>
+            Officer: <span>CHIEF ENGINEER SREERAM</span>
+        </div>
+    </header>
+
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <h3>Avg. Road Health</h3>
+            <p>84.2%</p>
+            <small>+2.1% from Q4</small>
+        </div>
+        <div class="metric-card">
+            <h3>Potholes (Critical)</h3>
+            <p style="color:var(--danger)">142</p>
+            <small style="color:var(--danger)">High Risk Zones</small>
+        </div>
+        <div class="metric-card">
+            <h3>Repair Efficiency</h3>
+            <p>91%</p>
+            <small>Avg. 18hr TTR</small>
+        </div>
+        <div class="metric-card">
+            <h3>Est. Budget Savings</h3>
+            <p>₹4.2M</p>
+            <small>AI Optimization</small>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-header">
+            <h2>DETAILED SECTOR LOGS</h2>
+            <div class="btn-group">
+                <button class="export-btn">GENERATE PDF</button>
+                <button class="export-btn">EXCEL EXPORT</button>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Road ID</th>
+                    <th>Road Segment Name</th>
+                    <th>Health Index</th>
+                    <th>Potholes (Count)</th>
+                    <th>Asphalt Vol. (Est.)</th>
+                    <th>Status</th>
+                    <th>Contractor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>VJA-NH16-01</td>
+                    <td>Benz Circle - Ramavarappadu</td>
+                    <td>72%</td>
+                    <td>42</td>
+                    <td>1.4 m³</td>
+                    <td><span class="status-pill pill-critical">Action Required</span></td>
+                    <td>ABC Infra Ltd.</td>
+                </tr>
+                <tr>
+                    <td>VJA-MG-04</td>
+                    <td>MG Road (Center Sector)</td>
+                    <td>94%</td>
+                    <td>03</td>
+                    <td>0.1 m³</td>
+                    <td><span class="status-pill pill-success">Optimal</span></td>
+                    <td>Build-Fast Corp</td>
+                </tr>
+                <tr>
+                    <td>VJA-KDV-02</td>
+                    <td>Kanaka Durga Varadhi</td>
+                    <td>81%</td>
+                    <td>15</td>
+                    <td>0.6 m³</td>
+                    <td><span class="status-pill pill-warning">Monitoring</span></td>
+                    <td>ABC Infra Ltd.</td>
+                </tr>
+                <tr>
+                    <td>VJA-ELR-09</td>
+                    <td>Eluru Road Crossing</td>
+                    <td>65%</td>
+                    <td>78</td>
+                    <td>2.9 m³</td>
+                    <td><span class="status-pill pill-critical">Immediate</span></td>
+                    <td>City Roads PWD</td>
+                </tr>
+                <tr>
+                    <td>VJA-NH16-05</td>
+                    <td>NH-16 Highway Sector</td>
+                    <td>88%</td>
+                    <td>04</td>
+                    <td>0.2 m³</td>
+                    <td><span class="status-pill pill-success">Optimal</span></td>
+                    <td>Build-Fast Corp</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="audit-grid">
+        <div class="contractor-card">
+            <h2 style="font-family:'Orbitron'; font-size:16px; color:var(--primary); margin-bottom:20px;">CONTRACTOR PERFORMANCE AUDIT</h2>
+            <div class="contractor-row">
+                <span>ABC Infra Ltd.</span>
+                <span style="color:var(--danger)">MTTF: 4.2 Months (LOW)</span>
+            </div>
+            <div class="contractor-row">
+                <span>Build-Fast Corp</span>
+                <span style="color:var(--success)">MTTF: 14.8 Months (HIGH)</span>
+            </div>
+            <div class="contractor-row">
+                <span>City Roads PWD</span>
+                <span style="color:var(--warning)">MTTF: 8.1 Months (MED)</span>
+            </div>
+        </div>
+
+        <div class="contractor-card" style="text-align: center;">
+            <h3 style="font-size:12px; color:#888; margin-bottom:15px;">PREDICTIVE DECAY FORECAST</h3>
+            <p style="font-family:'Orbitron'; font-size:24px; color:var(--warning);">14 DAYS</p>
+            <p style="font-size:10px; color:#888;">UNTIL SECTOR VJA-ELR REACHES CRITICAL THRESHOLD</p>
+        </div>
+    </div>
+
+</body>
+</html>
